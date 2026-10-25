@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Improvizovaný úkryt – únik amoniaku – 3D model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Rozvržení: pracovní plocha s 3D scénou vlevo, panel legendy vpravo (na telefonu pod scénou).
+   Barvy podle mezinárodního znaku civilní ochrany: modrý trojúhelník na oranžovém poli. */
+:root {
+  --bg: #eef0ee;          /* papírová šedá s nádechem zelené */
+  --panel: #f8f9f7;
+  --ink: #1c2124;
+  --muted: #5d666b;
+  --line: #d3d8d6;
+  --accent: #e8771d;      /* oranž CO */
+  --accent-ink: #9a4600;
+  --blue: #1f4e9c;        /* modř CO */
+  --scene: #dfe3e1;
+  --f-ui: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14191c; --panel: #1b2226; --ink: #e6ebec; --muted: #9aa6ab; --line: #2c363b;
+    --accent: #f08a33; --accent-ink: #ffb67a; --blue: #7aa5ec; --scene: #20282c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14191c; --panel: #1b2226; --ink: #e6ebec; --muted: #9aa6ab; --line: #2c363b;
+  --accent: #f08a33; --accent-ink: #ffb67a; --blue: #7aa5ec; --scene: #20282c; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-ui); font-size: 14px; }
+.app { height: 100%; display: grid; grid-template-rows: auto 1fr; padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px; gap: 12px; box-sizing: border-box; }
+header.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.mark { width: 34px; height: 34px; flex: none; background: var(--accent); display: grid; place-items: center; border-radius: 3px; }
+.mark svg { width: 24px; height: 24px; }
+.brand h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: .01em; text-wrap: balance; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel); flex-wrap: wrap; }
+.seg button { font: inherit; font-size: 13px; padding: 7px 12px; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--blue); color: #fff; }
+.seg button:focus-visible, .chip:focus-visible, .views button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.work { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 12px; min-height: 0; }
+.stage { position: relative; min-height: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--scene); }
+#c { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#c:active { cursor: grabbing; }
+#labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.lbl { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; font-size: 11.5px; font-weight: 600;
+  padding: 2px 6px; border-radius: 3px; background: rgba(255,255,255,.92); color: #1c2124; border: 1px solid rgba(0,0,0,.18); }
+.lbl::after { content: ""; position: absolute; left: var(--sx, 50%); bottom: calc(-5px - var(--ex, 0px)); width: 1px; height: calc(5px + var(--ex, 0px)); background: rgba(0,0,0,.45); }
+.lbl.k { border-color: #e8771d; } .lbl.c { border-color: #1f4e9c; }
+.views { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+.views button, .chip { font: inherit; font-size: 12.5px; padding: 6px 10px; border-radius: 5px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--ink); cursor: pointer; }
+.views button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-ink); }
+.toggles { position: absolute; right: 10px; top: 10px; display: flex; gap: 6px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.hint { position: absolute; right: 10px; bottom: 12px; font-size: 11.5px; color: var(--muted); }
+aside.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; overflow: auto; min-width: 0; }
+aside h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent-ink); margin: 0 0 6px; }
+aside .lead { margin: 0 0 12px; color: var(--muted); line-height: 1.45; }
+.legend { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 7px; }
+.legend li { display: grid; grid-template-columns: 14px 1fr; gap: 9px; align-items: start; line-height: 1.35; }
+.sw { width: 14px; height: 14px; border-radius: 2px; margin-top: 2px; border: 1px solid rgba(0,0,0,.2); }
+dl.nums { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; padding-top: 12px; border-top: 1px solid var(--line); }
+dl.nums dt { color: var(--muted); } dl.nums dd { margin: 0; font-family: var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.note { margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+.capture header.bar, .capture aside.panel, .capture .views, .capture .toggles, .capture .hint { display: none !important; }
+.capture .lbl { font-size: 17px; padding: 3px 8px; }
+.capture .app { padding: 0; grid-template-rows: 1fr; } .capture .work { grid-template-columns: 1fr; } .capture .stage { border: 0; border-radius: 0; }
+@media (max-width: 860px) {
+  html, body { height: auto; }
+  .app { height: auto; grid-template-rows: auto auto; }
+  .work { grid-template-columns: minmax(0, 1fr); }
+  .stage { height: 62vh; min-height: 340px; }
+  .hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header class="bar">
+    <div class="brand">
+      <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 22 20H2Z" fill="#1f4e9c"/></svg></div>
+      <div>
+        <h1>Improvizovaný úkryt proti úniku amoniaku</h1>
+        <p>Kotelna 1.PP, RD Soběslav III · stávající stav a návrh · Bc. Karel Bezpalec</p>
+      </div>
+    </div>
+    <div class="seg" role="group" aria-label="Varianta">
+      <button id="v-stav" data-v="stav" aria-pressed="false">Stávající stav</button>
+      <button id="v-konv" data-v="konv" aria-pressed="true">Konvenční zbraně</button>
+      <button id="v-nh3" data-v="nh3" aria-pressed="false">Únik amoniaku</button>
+    </div>
+  </header>
+  <div class="work">
+    <div class="stage">
+      <canvas id="c" aria-label="3D model kotelny – tažením otáčet, kolečkem nebo sevřením přibližovat"></canvas>
+      <div id="labels"></div>
+      <div class="toggles">
+        <button class="chip" id="t-lbl" aria-pressed="true">Popisky</button>
+        <button class="chip" id="t-cut" aria-pressed="true">Řez stěnami</button>
+      </div>
+      <div class="views" role="group" aria-label="Pohled">
+        <button id="p-celek" data-p="celek" aria-pressed="true">Celek</button>
+        <button id="p-zvenku" data-p="zvenku" aria-pressed="false">Zvenku</button>
+        <button id="p-interier" data-p="interier" aria-pressed="false">Interiér</button>
+        <button id="p-vstup" data-p="vstup" aria-pressed="false">Vstup z dílny</button>
+      </div>
+      <div class="hint">tažení = otáčení · kolečko = přiblížení · pravé tlačítko = posun</div>
+    </div>
+    <aside class="panel" id="panel"></aside>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+/* ------------------------------------------------------------------ rozměry z výkresové dokumentace (mm)
+   výkres: x = sever → jih (od vnitřního líce severní stěny), y = západ → východ, z = výška (±0,000 = podlaha 1.NP)
+   3D:     X = y/1000 (východ), Y = (z − ZF)/1000 (nahoru od podlahy kotelny), Z = x/1000 (jih) */
+const KX = 4230, KY = 4080, WN = 520, WE = 520, WS = 370, WW = 500;
+const O2 = [1370, 2170], O1 = [2710, 3510], O3 = [2790, 3490];
+const DOOR = [1250, 2050], DOOR_H = 1700;
+const VYK = [3330, 4230], VYK_D = 375, PR = [3480, 4080];
+const N1Y = 1095, N2Y = 2590, SX = 2115;
+const ZF = -2160, ZC = -220, ZT = -980, ZP = -900, ZW = -450, ZTOP = 0;
+const BAR = 600;
+const M = v => v / 1000;
+const X = y => M(y), Y = z => M(z - ZF), Z = x => M(x);
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.localClippingEnabled = true;
+renderer.outputEncoding = THREE.sRGBEncoding;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 200);
+
+/* ------------------------------------------------------------------ procedurální textury */
+function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+function canvasTex(w, h, draw, rep = 1) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = 4; t.userData = { size: rep }; return t;
+}
+function noise(g, w, h, a, r, n = 6000) { for (let i = 0; i < n; i++) { const v = (r() - .5) * a; g.fillStyle = v > 0 ? `rgba(255,255,255,${v})` : `rgba(0,0,0,${-v})`; g.fillRect(r() * w, r() * h, 2, 2); } }
+const TEX = {
+  stone: canvasTex(512, 512, (g, w, h) => {
+    const r = rng(7); g.fillStyle = '#8c8475'; g.fillRect(0, 0, w, h);
+    for (let row = 0, y = 0; y < h; row++) { const rh = 40 + r() * 40; let x = -r() * 60;
+      while (x < w) { const sw = 60 + r() * 110; const c = 150 + r() * 55; const t = r() * 12;
+        g.fillStyle = `rgb(${c},${c - 6 - t},${c - 20 - t})`;
+        g.beginPath(); g.moveTo(x + 5 + r() * 6, y + 4 + r() * 5); g.lineTo(x + sw - 4 - r() * 8, y + 3 + r() * 6);
+        g.lineTo(x + sw - 3 - r() * 6, y + rh - 4 - r() * 6); g.lineTo(x + 4 + r() * 8, y + rh - 3 - r() * 5); g.closePath(); g.fill();
+        x += sw; }
+      y += rh; }
+    noise(g, w, h, .18, r, 9000);
+  }, 1.2),
+  brick: canvasTex(512, 256, (g, w, h) => {
+    const r = rng(3); g.fillStyle = '#c9b8a3'; g.fillRect(0, 0, w, h);
+    const bw = 128, bh = 32;
+    for (let j = 0; j < h / bh; j++) for (let i = -1; i < w / bw + 1; i++) {
+      const x = i * bw + (j % 2 ? bw / 2 : 0); const c = r();
+      g.fillStyle = `rgb(${175 + c * 50},${95 + c * 40},${70 + c * 30})`; g.fillRect(x + 3, j * bh + 3, bw - 6, bh - 6); }
+    noise(g, w, h, .2, r, 7000);
+  }, 1.0),
+  plaster: canvasTex(256, 256, (g, w, h) => { const r = rng(11); g.fillStyle = '#e7e3da'; g.fillRect(0, 0, w, h); noise(g, w, h, .07, r, 5000); }, 1.5),
+  concrete: canvasTex(256, 256, (g, w, h) => { const r = rng(5); g.fillStyle = '#b8b9b4'; g.fillRect(0, 0, w, h); noise(g, w, h, .12, r, 8000); }, 1.5),
+  ceiling: canvasTex(256, 256, (g, w, h) => { const r = rng(9); g.fillStyle = '#8d8f8c'; g.fillRect(0, 0, w, h); noise(g, w, h, .16, r, 7000); }, 1.5),
+  osb: canvasTex(256, 256, (g, w, h) => { const r = rng(13); g.fillStyle = '#c99e5f'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 260; i++) { const c = r(); g.fillStyle = `rgba(${120 + c * 90},${80 + c * 60},${30 + c * 30},.55)`;
+      g.save(); g.translate(r() * w, r() * h); g.rotate(r() * 3.14); g.fillRect(-14, -4, 28 + r() * 16, 7 + r() * 5); g.restore(); } }, 0.8),
+  bag: canvasTex(128, 128, (g, w, h) => { const r = rng(17); g.fillStyle = '#cbb894'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(90,70,40,.18)'; for (let i = 0; i < w; i += 4) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, h); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(w, i); g.stroke(); }
+    noise(g, w, h, .1, r, 1500); }, 0.4),
+  soil: canvasTex(256, 256, (g, w, h) => { const r = rng(21); g.fillStyle = '#7b5d3f'; g.fillRect(0, 0, w, h); noise(g, w, h, .25, r, 9000); }, 1.5),
+  plank: canvasTex(256, 256, (g, w, h) => { const r = rng(23); for (let i = 0; i < 6; i++) { const c = r() * 20;
+      g.fillStyle = `rgb(${52 + c},${46 + c},${40 + c})`; g.fillRect(i * w / 6, 0, w / 6 - 3, h); } noise(g, w, h, .15, r, 3000); }, 1.0),
+  geo: canvasTex(128, 128, (g, w, h) => { const r = rng(29); g.fillStyle = '#eceae4'; g.fillRect(0, 0, w, h); noise(g, w, h, .08, r, 1500); }, 1.0),
+};
+const mat = (opt) => new THREE.MeshStandardMaterial(Object.assign({ roughness: .92, metalness: 0 }, opt));
+const MAT = {
+  stone: mat({ map: TEX.stone }), brick: mat({ map: TEX.brick }), plaster: mat({ map: TEX.plaster }),
+  floor: mat({ map: TEX.concrete }), ceiling: mat({ map: TEX.ceiling, side: THREE.DoubleSide }), osb: mat({ map: TEX.osb }),
+  bag: mat({ map: TEX.bag, roughness: 1 }), soil: mat({ map: TEX.soil, roughness: 1 }), geo: mat({ map: TEX.geo }),
+  steel: mat({ color: 0x3d4247, metalness: .55, roughness: .45 }), steelNew: mat({ color: 0xc62d1f, metalness: .4, roughness: .5 }),
+  timber: mat({ color: 0xd4a464, roughness: .8 }), glass: new THREE.MeshPhysicalMaterial({ color: 0xbfd6dc, transparent: true, opacity: .32, roughness: .1, metalness: 0 }),
+  frame: mat({ color: 0x5b6a5b, metalness: .4, roughness: .6 }), oldDoor: mat({ map: TEX.plank }),
+  newDoor: mat({ color: 0x6e7c6f, metalness: .3, roughness: .6 }), mattress: mat({ color: 0x3f6aa8 }), blanket: mat({ color: 0x8a9a7b }),
+  shelf: mat({ color: 0x7c868c, metalness: .35, roughness: .55 }), box: mat({ color: 0xb58b52 }), canister: mat({ color: 0x2f62c4, roughness: .5 }),
+  wc: mat({ color: 0xe6e6e0, roughness: .4 }), curtain: mat({ color: 0x9fb7c4, transparent: true, opacity: .3, side: THREE.DoubleSide }),
+  foil: new THREE.MeshPhysicalMaterial({ color: 0xcfe9ff, transparent: true, opacity: .42, roughness: .15, side: THREE.DoubleSide }),
+  tape: mat({ color: 0x9a9da0, roughness: .6 }), towel: mat({ color: 0x5a8fb8 }), led: mat({ color: 0xffffff, emissive: 0xfff3d6, emissiveIntensity: .9 }),
+  emerg: mat({ color: 0x1e9f5a, emissive: 0x0e6a3a, emissiveIntensity: .6 }), red: mat({ color: 0xc8261d, roughness: .5 }),
+  pipe: mat({ color: 0x9aa4a8, metalness: .5, roughness: .4 }), vzt: mat({ color: 0x14a3b4, metalness: .2, roughness: .5 }),
+  dark: mat({ color: 0x2b2f33 }), mask: mat({ color: 0x323a2e }), chair: mat({ color: 0x5b4632 }), table: mat({ color: 0x9b7a55 }),
+  infill: mat({ color: 0xc94f3a, map: TEX.brick }), cloud: new THREE.MeshStandardMaterial({ color: 0xdff2c8, transparent: true, opacity: .22, depthWrite: false, roughness: 1 }),
+  tub: mat({ color: 0x3b7bd1, roughness: .5 }), white: mat({ color: 0xf2f2ee }), yellow: mat({ color: 0xf2c200 }),
+};
+// materiály stěn bližších ke kameře (jižní a západní) se při pohledu „Celek“ seříznou
+const CUT = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1.05);
+const CUTMAT = {};
+['stone', 'brick', 'plaster', 'oldDoor', 'newDoor', 'infill', 'foil', 'tape', 'frame', 'glass', 'red'].forEach(k => { CUTMAT[k] = MAT[k].clone(); });
+
+/* ------------------------------------------------------------------ pomocné funkce geometrie */
+function boxUV(geo, w, h, d, s) {         // UV v měřítku světa, aby textura nebyla roztažená
+  const uv = geo.attributes.uv; const dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+  for (let f = 0; f < 6; f++) for (let i = 0; i < 4; i++) { const k = f * 4 + i; uv.setXY(k, uv.getX(k) * dims[f][0] / s, uv.getY(k) * dims[f][1] / s); }
+  uv.needsUpdate = true; return geo;
+}
+function box(parent, x0, x1, y0, y1, z0, z1, material, opts = {}) {   // souřadnice výkresu v mm
+  const w = Math.abs(M(y1 - y0)), h = Math.abs(M(z1 - z0)), d = Math.abs(M(x1 - x0));
+  if (w < 1e-4 || h < 1e-4 || d < 1e-4) return null;
+  const g = new THREE.BoxGeometry(w, h, d);
+  if (material.map) boxUV(g, w, h, d, material.map.userData.size || 1);
+  const m = new THREE.Mesh(g, material);
+  m.position.set(X((y0 + y1) / 2), Y((z0 + z1) / 2), Z((x0 + x1) / 2));
+  m.castShadow = opts.cast !== false; m.receiveShadow = true; if (opts.name) m.name = opts.name;
+  parent.add(m); return m;
+}
+// stěna s otvory: osa 'x' = stěna probíhá podél x (západní/východní), 'y' = podél y (severní/jižní)
+function wall(parent, along, a0, a1, t0, t1, z0, z1, holes, material) {
+  const cuts = [a0, a1]; holes.forEach(o => cuts.push(o[0], o[1])); const s = [...new Set(cuts)].sort((p, q) => p - q);
+  for (let i = 0; i < s.length - 1; i++) {
+    const p = s[i], q = s[i + 1]; if (q - p < 1) continue;
+    const hs = holes.filter(o => o[0] <= p && o[1] >= q);
+    let zz = [z0]; hs.forEach(o => zz.push(o[2], o[3])); zz.push(z1); zz.sort((u, v) => u - v);
+    for (let k = 0; k < zz.length - 1; k += 2) {
+      if (zz[k + 1] - zz[k] < 1) continue;
+      if (along === 'x') box(parent, p, q, t0, t1, zz[k], zz[k + 1], material); else box(parent, t0, t1, p, q, zz[k], zz[k + 1], material);
+    }
+  }
+}
+function cyl(parent, r, h, material, pos, rot) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 20), material); m.position.set(...pos);
+  if (rot) m.rotation.set(...rot); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m;
+}
+// pytel s pískem: zaoblený kvádr
+const BAG_GEO = (() => { const g = new THREE.BoxGeometry(.5, .14, .3, 6, 2, 4); const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const k = 1 - .45 * Math.pow(Math.abs(x) / .25, 4) - .25 * Math.pow(Math.abs(z) / .15, 4); p.setY(i, y * Math.max(.35, k)); }
+  g.computeVertexNormals(); return g; })();
+function bag(parent, X3, Y3, Z3, rotY) { const m = new THREE.Mesh(BAG_GEO, MAT.bag); m.position.set(X3, Y3 + .07, Z3); m.rotation.y = rotY || 0;
+  m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; }
+// násyp z pytlů před oknem: stěna kolmá na osu (sever: podél X; východ: podél Z)
+function bagPile(parent, side, a0, a1, h0, h1, depth) {
+  const len = a1 - a0, nA = Math.max(1, Math.round(len / .5)), nD = Math.max(1, Math.round(depth / .3)), nH = Math.max(1, Math.round((h1 - h0) / .135));
+  for (let k = 0; k < nH; k++) for (let j = 0; j < nD; j++) for (let i = 0; i < nA; i++) {
+    const off = (k % 2) ? .25 : 0; const t = a0 + .25 + i * (len / nA) + off * (i < nA - 1 ? 1 : 0); const dd = .15 + j * (depth / nD);
+    const yy = h0 + k * .135;
+    if (side === 'N') bag(parent, t, yy, M(-WN) - dd, 0); else bag(parent, M(KY + WE) + dd, yy, t, Math.PI / 2);
+  }
+}
+const labels = []; // {pos: Vector3, text, cls, groups: [variant..]}
+function label(text, x, y, z, vars, cls = '') { labels.push({ p: new THREE.Vector3(x, y, z), text, cls, vars }); }
+
+/* ------------------------------------------------------------------ společné části scény */
+const G = { common: new THREE.Group(), stav: new THREE.Group(), konv: new THREE.Group(), nh3: new THREE.Group(), plaster: new THREE.Group(), raw: new THREE.Group() };
+Object.values(G).forEach(g => scene.add(g));
+const C = G.common;
+// podlaha kotelny + podlaha dílny (část)
+box(C, 0, KX, 0, KY, ZF - 150, ZF, MAT.floor, { cast: false });
+box(C, KX + WS, KX + WS + 3000, -WW, 3300, ZF - 150, ZF, MAT.floor, { cast: false });
+box(C, 3330, KX, -WW, -VYK_D, ZF - 150, ZF, MAT.floor, { cast: false });
+// terén a zemina na severní a východní straně (vně)
+const soilN = box(C, -WN - 3200, -WN, -WW - 1200, KY + WE + 3200, ZF - 150, ZT, MAT.soil, { cast: false });
+const soilE = box(C, -WN, KX + WS + 2600, KY + WE, KY + WE + 3200, ZF - 150, ZT, MAT.soil, { cast: false });
+box(C, -WN - 900, -WN, -WW - 1200, KY + WE + 900, ZT, ZT + 4, MAT.geo, { cast: false });   // geotextilie podél domu (foto P5)
+// stěny: surové zdivo (stav) / omítnuté (návrhy) – geometrie dvakrát, přepíná se viditelnost
+function buildWalls(parent, plastered) {
+  const st = plastered ? MAT.plaster : MAT.stone, br = plastered ? MAT.plaster : MAT.brick;
+  const stC = plastered ? CUTMAT.plaster : CUTMAT.stone, brC = plastered ? CUTMAT.plaster : CUTMAT.brick;
+  // severní (kámen, do ulice) – okna O2, O1
+  wall(parent, 'y', -WW, KY + WE, -WN, 0, ZF, ZTOP, [[O2[0], O2[1], ZP, ZW], [O1[0], O1[1], ZP, ZW]], st);
+  // východní (kámen) – okno O3
+  wall(parent, 'x', 0, KX, KY, KY + WE, ZF, ZTOP, [[O3[0], O3[1], ZP, ZW]], st);
+  // jižní (cihla 370, k dílně) – dveře D1 (seříznutelné)
+  wall(parent, 'y', -WW, KY + WE, KX, KX + WS, ZF, ZTOP, [[DOOR[0], DOOR[1], ZF, ZF + DOOR_H]], brC);
+  // západní (kámen 500, k chodbě) – výklenek
+  wall(parent, 'x', 0, VYK[0], -WW, 0, ZF, ZTOP, [], stC);
+  wall(parent, 'x', VYK[1], KX + WS, -WW, 0, ZF, ZTOP, [], stC);
+  box(parent, VYK[0], VYK[1], -WW, -VYK_D, ZF, ZTOP, plastered ? CUTMAT.plaster : CUTMAT.brick);       // zbytek stěny 125 mm (cihla)
+  box(parent, VYK[0], VYK[1], -VYK_D, 0, ZC - 120, ZTOP, stC);                                       // nadpraží výklenku
+}
+buildWalls(G.raw, false); buildWalls(G.plaster, true);
+// strop: ocelové nosníky I + desky (strop se při pohledech shora nekreslí, nosníky ano)
+const ceilingSlab = box(C, -WN - 5, KX + WS + 5, -WW - 5, KY + WE + 5, ZC, ZTOP + 12, MAT.ceiling, { cast: false });
+[N1Y, N2Y].forEach(y => { box(C, -WN, KX + WS, y - 50, y + 50, ZC - 25, ZC, MAT.steel); });
+label('N1 – nosník I', X(N1Y), Y(ZC) + .05, Z(600), ['stav', 'konv', 'nh3']);
+// okna: ocelový rám + sklo (u vnějšího líce)
+function windowAt(parent, side, a0, a1) {
+  const t = side === 'N' ? [-WN + 60, -WN + 120] : [KY + WE - 120, KY + WE - 60];
+  if (side === 'N') { box(parent, t[0], t[1], a0, a1, ZP, ZW, MAT.glass, { cast: false });
+    [a0, (2 * a0 + a1) / 3, (a0 + 2 * a1) / 3, a1].forEach(a => box(parent, t[0] - 10, t[1] + 10, a - 18, a + 18, ZP, ZW, MAT.frame));
+    box(parent, t[0] - 10, t[1] + 10, a0, a1, ZP, ZP + 35, MAT.frame); box(parent, t[0] - 10, t[1] + 10, a0, a1, ZW - 35, ZW, MAT.frame);
+  } else { box(parent, a0, a1, t[0], t[1], ZP, ZW, MAT.glass, { cast: false });
+    [a0, (2 * a0 + a1) / 3, (a0 + 2 * a1) / 3, a1].forEach(a => box(parent, a - 18, a + 18, t[0] - 10, t[1] + 10, ZP, ZW, MAT.frame));
+    box(parent, a0, a1, t[0] - 10, t[1] + 10, ZP, ZP + 35, MAT.frame); box(parent, a0, a1, t[0] - 10, t[1] + 10, ZW - 35, ZW, MAT.frame);
+  }
+}
+windowAt(C, 'N', O2[0], O2[1]); windowAt(C, 'N', O1[0], O1[1]); windowAt(C, 'E', O3[0], O3[1]);
+label('O2', X((O2[0] + O2[1]) / 2), Y(ZW) + .12, Z(-WN / 2), ['stav', 'konv', 'nh3']);
+label('O1', X((O1[0] + O1[1]) / 2), Y(ZW) + .12, Z(-WN / 2), ['stav', 'konv', 'nh3']);
+label('O3', X(KY + WE / 2), Y(ZW) + .12, Z((O3[0] + O3[1]) / 2), ['stav', 'konv', 'nh3']);
+// zásuvka 230 V na pilíři vedle výklenku (u žárovkového svítidla)
+box(C, 3180, 3280, 0, 25, ZF + 1500, ZF + 1600, MAT.dark);
+
+/* ------------------------------------------------------------------ stávající stav */
+const S = G.stav;
+const od = box(S, KX + 5, KX + 45, DOOR[0], DOOR[1], ZF, ZF + DOOR_H, CUTMAT.oldDoor);              // prkenné dveře (zavřené)
+box(S, KX + 50, KX + 75, DOOR[0] + 60, DOOR[1] - 60, ZF + 260, ZF + 380, CUTMAT.oldDoor);            // svlak
+box(S, KX + 50, KX + 75, DOOR[0] + 60, DOOR[1] - 60, ZF + 1320, ZF + 1440, CUTMAT.oldDoor);
+cyl(S, .065, .3, MAT.pipe, [X(-280), Y(ZF + 1050), Z(KX - 150)], [Math.PI / 2, 0, 0]);               // kouřovod z boční stěny výklenku
+[3735, 3960].forEach(x => box(S, x - 50, x + 50, -VYK_D - 2, -VYK_D + 3, ZF + 1690, ZF + 1780, MAT.dark));   // 2 otvory pod nadpražím
+box(S, 1600, 2800, 2400, 2460, ZC - 60, ZC - 25, MAT.white);                                        // zářivka
+label('dveře D1 – prkenné 800 × 1700', X((DOOR[0] + DOOR[1]) / 2), Y(ZF + DOOR_H) + .12, Z(KX), ['stav']);
+label('výklenek: sopouch, 2 otvory ve zdivu', X(-180), Y(ZF + 1800), Z(3850), ['stav']);
+label('lomové kamenné zdivo 520 mm', X(KY) - .3, Y(ZF + 600), Z(800), ['stav']);
+label('podlaha 1,18 m pod terénem', X(1000), Y(ZF) + .05, Z(2500), ['stav']);
+
+/* ------------------------------------------------------------------ návrh – konvenční zbraně */
+const K = G.konv;
+// zodolnění oken: pytle v nice + deska OSB zevnitř + vnější násyp 600 mm
+function niceBags(parent, side, a0, a1) {
+  const n = Math.round(M(a1 - a0) / .5);
+  for (let k = 0; k < 3; k++) for (let i = 0; i < n; i++) {
+    const t = M(a0) + .25 + i * M(a1 - a0) / n;
+    if (side === 'N') bag(parent, t, Y(ZP) + k * .135, M(-260), 0); else bag(parent, M(KY + 260), Y(ZP) + k * .135, t, Math.PI / 2);
+  }
+}
+[[O2], [O1]].forEach(([o]) => { niceBags(K, 'N', o[0], o[1]); box(K, 6, 28, o[0] - 60, o[1] + 60, ZP - 60, ZW + 60, MAT.osb); });
+niceBags(K, 'E', O3[0], O3[1]); box(K, O3[0] - 60, O3[1] + 60, KY - 28, KY - 6, ZP - 60, ZW + 60, MAT.osb);
+[O2, O1].forEach(o => bagPile(K, 'N', M(o[0] - 300), M(o[1] + 300), Y(ZT), Y(ZW + 300), M(BAR)));
+bagPile(K, 'E', M(O3[0] - 300), M(O3[1] + 300), Y(ZT), Y(ZW + 300), M(BAR));
+label('násyp z pytlů s pískem 600 mm', X((O1[0] + O1[1]) / 2), Y(ZW + 300) + .2, Z(-WN - 300), ['konv'], 'k');
+label('deska OSB 22 mm + pytle v nice', X((O2[0] + O2[1]) / 2), Y(ZW) + .25, Z(40), ['konv'], 'k');
+// VZT-P: komínek DN 100 oknem O3, ventilátor VE; VZT-O: sopouch
+cyl(K, .055, Y(ZP) - .5, MAT.vzt, [X(KY - 120), (.5 + Y(ZP)) / 2, Z(3140)]);
+cyl(K, .055, M(WE + 820), MAT.vzt, [(X(KY - 120) + X(KY + WE + 700)) / 2, Y(ZP) + .06, Z(3140)], [0, 0, Math.PI / 2]);
+cyl(K, .055, Y(ZT) + 1.5 - Y(ZP), MAT.vzt, [X(KY + WE + 700), (Y(ZT) + 1.5 + Y(ZP)) / 2 + .06, Z(3140)]);
+cyl(K, .09, .08, MAT.vzt, [X(KY + WE + 700), Y(ZT) + 1.56, Z(3140)]);
+box(K, 3060, 3220, KY - 200, KY - 60, ZF + 900, ZF + 1050, MAT.dark);                            // ventilátor VE
+label('VZT-P + ventilátor VE (DN 100)', X(KY + WE + 700), Y(ZT) + 1.75, Z(3140), ['konv'], 'k');
+cyl(K, .065, .34, MAT.vzt, [X(-280), Y(ZF + 1050), Z(KX - 170)], [Math.PI / 2, 0, 0]);
+label('VZT-O – odvod sopouchem', X(-200), Y(ZF + 1250), Z(4000), ['konv'], 'k');
+// nouzový průraz v zadní stěně výklenku (zazdívka 140 mm, odlišný nátěr) + dozdívka nad překladem
+box(K, PR[0], PR[1], -WW + 5, -VYK_D + 5, ZF + 450, ZF + 1250, CUTMAT.infill);
+box(K, VYK[0], VYK[1], -VYK_D, 0, ZF + 1370, ZC - 120, CUTMAT.plaster);
+box(K, VYK[0] + 50, VYK[1] - 50, -VYK_D, -VYK_D + 120, ZF + 1250, ZF + 1370, MAT.steel);
+label('nouzový průraz 600 × 800', X(-200), Y(ZF + 1100), Z((PR[0] + PR[1]) / 2), ['konv'], 'k');
+// nové dveře D1 (plné, otvíravé ven) + závora
+box(K, KX + 5, KX + 55, DOOR[0], DOOR[1], ZF, ZF + DOOR_H, CUTMAT.newDoor);
+box(K, KX - 70, KX - 10, DOOR[0] - 120, DOOR[1] + 120, ZF + 850, ZF + 950, MAT.timber);
+box(K, KX - 10, KX, DOOR[0] - 60, DOOR[1] + 60, ZF + DOOR_H, ZF + DOOR_H + 80, MAT.yellow);
+[0, 1, 2, 3, 4, 5, 6].forEach(i => box(K, KX - 12, KX - 9, DOOR[0] - 40 + i * 150, DOOR[0] + 30 + i * 150, ZF + DOOR_H, ZF + DOOR_H + 80, MAT.dark));
+label('dveře D1 – plné křídlo, závora', X((DOOR[0] + DOOR[1]) / 2), Y(ZF + DOOR_H) + .15, Z(KX - 150), ['konv'], 'k');
+// nové sloupky S1 (pod N1) a S2 (pod N2), hranol 140 × 140 + roznášecí fošna, hlavová deska, zavětrování
+[N1Y, N2Y].forEach(y => { box(K, SX - 70, SX + 70, y - 70, y + 70, ZF + 50, ZC - 75, MAT.timber);
+  box(K, SX - 300, SX + 300, y - 125, y + 125, ZF, ZF + 50, MAT.timber);
+  box(K, SX - 300, SX + 300, y - 90, y + 90, ZC - 75, ZC - 25, MAT.timber); });
+(() => { const a = new THREE.Vector3(X(N1Y + 70), Y(ZF + 250), Z(SX)), b = new THREE.Vector3(X(N2Y - 70), Y(ZC - 250), Z(SX));
+  [[a, b], [new THREE.Vector3(a.x, b.y, a.z), new THREE.Vector3(b.x, a.y, b.z)]].forEach(([p, q]) => {
+    const len = p.distanceTo(q); const m = new THREE.Mesh(new THREE.BoxGeometry(.15, .032, len), MAT.timber);
+    m.position.copy(p).add(q).multiplyScalar(.5); m.position.z += .09; m.lookAt(q.x, q.y, q.z + .09); m.castShadow = true; K.add(m); }); })();
+label('S1, S2 – nové sloupky + zavětrování', X((N1Y + N2Y) / 2), Y(ZF + 1750), Z(SX), ['konv'], 'k');
+// palandy L1/L3, L2/L4
+function bunk(parent, x0, x1, y0, y1) {
+  [[x0, y0], [x0, y1], [x1, y0], [x1, y1]].forEach(([x, y]) => box(parent, x - 25, x + 25, y - 25, y + 25, ZF, ZF + 1300, MAT.timber));
+  [200, 900].forEach(h => { box(parent, x0, x1, y0, y1, ZF + h, ZF + h + 40, MAT.timber); box(parent, x0 + 30, x1 - 30, y0 + 30, y1 - 30, ZF + h + 40, ZF + h + 120, MAT.mattress);
+    if (x1 - x0 > y1 - y0) box(parent, x0 + 40, x0 + 700, y0 + 40, y1 - 40, ZF + h + 120, ZF + h + 150, MAT.blanket);
+    else box(parent, x0 + 40, x1 - 40, y0 + 40, y0 + 700, ZF + h + 120, ZF + h + 150, MAT.blanket); });
+}
+bunk(K, 150, 2050, 100, 800); bunk(K, 600, 2500, KY - 780, KY - 80);   // palandy mimo okna (Metodika UO, tab. 5-5)
+label('palandy L1/L3, L2/L4 – mimo okna', X(450), Y(ZF + 1450), Z(1100), ['konv'], 'k');
+// regály R1, R2 se zásobami a kanystry vody
+function shelf(parent, x0, x1, y0, y1) {
+  [[x0, y0], [x0, y1], [x1, y0], [x1, y1]].forEach(([x, y]) => box(parent, x - 15, x + 15, y - 15, y + 15, ZF, ZF + 1800, MAT.shelf));
+  [300, 700, 1100, 1500].forEach(h => box(parent, x0, x1, y0, y1, ZF + h, ZF + h + 25, MAT.shelf));
+  return (h, list) => list.forEach(([a0, a1, b0, b1, ht, m]) => box(parent, a0, a1, b0, b1, ZF + h + 25, ZF + h + 25 + ht, m));
+}
+const r1 = shelf(K, 40, 440, 2610, 3610);                                   // plný regál R1 před oknem O1
+r1(300, [[60, 420, 2640, 2940, 260, MAT.box], [60, 420, 2990, 3290, 220, MAT.box], [60, 420, 3340, 3590, 300, MAT.box]]);
+r1(700, [[60, 420, 2640, 3040, 240, MAT.box], [60, 420, 3110, 3590, 200, MAT.white]]);
+r1(1100, [[60, 420, 2640, 3590, 180, MAT.box]]);
+const r2 = shelf(K, KX - 400, KX - 10, 2700, 3700);
+[300, 700].forEach(h => r2(h, [[KX - 380, KX - 30, 2740, 3000, 320, MAT.canister], [KX - 380, KX - 30, 3060, 3320, 320, MAT.canister], [KX - 380, KX - 30, 3380, 3660, 320, MAT.canister]]));
+r2(1100, [[KX - 380, KX - 30, 2740, 3660, 200, MAT.box]]);
+label('R1 – zásoby před oknem O1', X(3110), Y(ZF + 1950), Z(240), ['konv'], 'k');
+label('R2 – pitná voda', X(3500), Y(ZF + 1900), Z(KX - 250), ['konv', 'nh3'], 'k');
+// stůl, židle, WC za závěsem, věšák M s maskami, hasicí přístroj
+box(K, 2550, 3350, 2750, 3350, ZF + 720, ZF + 760, MAT.table);
+[[2600, 2800], [2600, 3300], [3300, 2800], [3300, 3300]].forEach(([x, y]) => box(K, x - 20, x + 20, y - 20, y + 20, ZF, ZF + 720, MAT.table));
+[[2950, 2550], [2950, 3550], [2350, 3050]].forEach(([x, y]) => { box(K, x - 200, x + 200, y - 200, y + 200, ZF + 430, ZF + 470, MAT.chair);
+  [[-170, -170], [-170, 170], [170, -170], [170, 170]].forEach(([a, b]) => box(K, x + a - 15, x + a + 15, y + b - 15, y + b + 15, ZF, ZF + 430, MAT.chair)); });
+box(K, 2450, 2900, 80, 530, ZF, ZF + 420, MAT.wc);
+box(K, 2380, 2990, 560, 575, ZF + 50, ZF + 1800, MAT.curtain); box(K, 2380, 2395, 20, 570, ZF + 50, ZF + 1800, MAT.curtain);
+label('chemické WC', X(300), Y(ZF + 1900), Z(2680), ['konv', 'nh3'], 'k');
+box(K, KX - 120, KX - 10, 2120, 2600, ZF + 1500, ZF + 1540, MAT.timber);
+[2200, 2330, 2460].forEach(y => box(K, KX - 160, KX - 40, y - 50, y + 50, ZF + 1200, ZF + 1480, MAT.mask));
+label('M – ochranné masky', X(2360), Y(ZF + 1650), Z(KX - 150), ['konv', 'nh3'], 'k');
+cyl(K, .08, .5, MAT.red, [X(1100), Y(ZF + 250), Z(KX - 150)]);
+// svítidla LED a nouzová svítidla
+[[1060, 550], [3170, 550], [1060, 1840], [3170, 1840], [1060, 3335], [3170, 3335]].forEach(([x, y]) =>
+  cyl(K, .11, .025, MAT.led, [X(y), Y(ZC - 40), Z(x)]));
+[[3900, 1650], [3700, 900]].forEach(([x, y]) => box(K, x - 60, x + 60, y - 120, y + 120, ZC - 70, ZC - 25, MAT.emerg));
+
+/* ------------------------------------------------------------------ návrh – únik amoniaku (OP-II) */
+const N = G.nh3;
+// okna: PE fólie přes celý otvor zevnitř + obvod přelepený páskou
+function foilWin(parent, side, a0, a1) {
+  if (side === 'N') { box(parent, 4, 10, a0 - 120, a1 + 120, ZP - 120, ZW + 120, MAT.foil, { cast: false });
+    [[a0 - 120, a0 - 60], [a1 + 60, a1 + 120]].forEach(([p, q]) => box(parent, 2, 14, p, q, ZP - 120, ZW + 120, MAT.tape));
+    [[ZP - 120, ZP - 60], [ZW + 60, ZW + 120]].forEach(([p, q]) => box(parent, 2, 14, a0 - 120, a1 + 120, p, q, MAT.tape));
+  } else { box(parent, a0 - 120, a1 + 120, KY - 10, KY - 4, ZP - 120, ZW + 120, MAT.foil, { cast: false });
+    [[a0 - 120, a0 - 60], [a1 + 60, a1 + 120]].forEach(([p, q]) => box(parent, p, q, KY - 14, KY - 2, ZP - 120, ZW + 120, MAT.tape));
+    [[ZP - 120, ZP - 60], [ZW + 60, ZW + 120]].forEach(([p, q]) => box(parent, a0 - 120, a1 + 120, KY - 14, KY - 2, p, q, MAT.tape));
+  }
+}
+foilWin(N, 'N', O2[0], O2[1]); foilWin(N, 'N', O1[0], O1[1]); foilWin(N, 'E', O3[0], O3[1]);
+label('okna: PE fólie + páska', X((O1[0] + O1[1]) / 2), Y(ZW) + .3, Z(40), ['nh3'], 'c');
+// dveře D1: stávající křídlo dotěsněné fólií a páskou ze strany kotelny, mokrá textilie u prahu
+box(N, KX + 5, KX + 45, DOOR[0], DOOR[1], ZF, ZF + DOOR_H, CUTMAT.oldDoor);
+box(N, KX - 12, KX - 4, DOOR[0] - 100, DOOR[1] + 100, ZF, ZF + DOOR_H + 100, CUTMAT.foil, { cast: false });
+[[DOOR[0] - 100, DOOR[0] - 40], [DOOR[1] + 40, DOOR[1] + 100]].forEach(([p, q]) => box(N, KX - 16, KX - 2, p, q, ZF, ZF + DOOR_H + 100, CUTMAT.tape));
+box(N, KX - 16, KX - 2, DOOR[0] - 100, DOOR[1] + 100, ZF + DOOR_H + 40, ZF + DOOR_H + 100, CUTMAT.tape);
+cyl(N, .06, M(DOOR[1] - DOOR[0] + 150), MAT.towel, [X((DOOR[0] + DOOR[1]) / 2), .06, Z(KX - 70)], [0, 0, Math.PI / 2]);
+label('dveře: fólie, páska, mokrá textilie u prahu', X((DOOR[0] + DOOR[1]) / 2), Y(ZF + DOOR_H) + .18, Z(KX - 150), ['nh3'], 'c');
+// sopouch ucpaný, uzávěry prostupů
+box(N, KX - 40, KX - 2, -340, -220, ZF + 990, ZF + 1110, MAT.dark);
+box(N, KX - 10, KX - 4, -370, -110, ZF + 920, ZF + 1180, MAT.foil, { cast: false });
+[3735, 3960].forEach(x => box(N, x - 60, x + 60, -VYK_D, -VYK_D + 8, ZF + 1680, ZF + 1790, MAT.tape));
+label('sopouch ucpaný, 2 otvory vyplněné', X(-200), Y(ZF + 1450), Z(4000), ['nh3'], 'c');
+// hygienická smyčka v dílně: PE závěs, vana na obuv, pytle na oděvy, kanystr vody
+// dílna: vstup z chodby je v západní stěně dílny (x 5000–5870); závěs napříč dílnou ve vzdálenosti 1,0 m od západní stěny
+box(N, KX + WS, KX + WS + 1900, 995, 1010, ZF, ZF + 1900, MAT.curtain, { cast: false });
+box(N, KX + WS + 1100, KX + WS + 1700, 300, 800, ZF, ZF + 120, MAT.tub);
+cyl(N, .2, .55, MAT.dark, [X(450), Y(ZF + 275), Z(KX + WS + 600)]);
+box(N, KX + WS + 1900, KX + WS + 2200, 150, 400, ZF, ZF + 350, MAT.canister);
+box(N, 5000, 5870, -WW, 0, ZF, ZF + 10, MAT.yellow, { cast: false });
+label('PE závěs – hygienická smyčka', X(1000), Y(ZF + 1750), Z(KX + WS + 950), ['nh3'], 'c');
+label('„čistá“ zóna', X(1900), Y(ZF) + .05, Z(KX + WS + 600), ['nh3'], 'c');
+label('„špinavá“ zóna – odložení oděvu, očista', X(500), Y(ZF + 200), Z(KX + WS + 1400), ['nh3'], 'c');
+label('vstup z chodby', X(-250), Y(ZF) + .05, Z(5435), ['nh3'], 'c');
+// vybavení pro krátkodobý pobyt: lavice a lůžka, regál, WC (sdíleno), masky s filtrem K
+bunk(N, 150, 2050, 100, 800); bunk(N, 600, 2500, KY - 780, KY - 80);
+const r1n = shelf(N, 40, 440, 2610, 3610); r1n(700, [[60, 420, 2640, 3590, 200, MAT.box]]);
+const r2n = shelf(N, KX - 400, KX - 10, 2700, 3700);
+[300, 700].forEach(h => r2n(h, [[KX - 380, KX - 30, 2740, 3000, 320, MAT.canister], [KX - 380, KX - 30, 3060, 3320, 320, MAT.canister]]));
+box(N, 2450, 2900, 80, 530, ZF, ZF + 420, MAT.wc);
+box(N, 2380, 2990, 560, 575, ZF + 50, ZF + 1800, MAT.curtain);
+box(N, KX - 120, KX - 10, 2120, 2600, ZF + 1500, ZF + 1540, MAT.timber);
+[2200, 2330, 2460].forEach(y => box(N, KX - 160, KX - 40, y - 50, y + 50, ZF + 1200, ZF + 1480, MAT.mask));
+box(N, 2550, 3350, 2750, 3350, ZF + 720, ZF + 760, MAT.table);
+box(N, 2700, 2950, 2950, 3150, ZF + 760, ZF + 860, MAT.white);   // detektor CO2 a rádio na stole
+label('detektor CO₂, rádio', X(3050), Y(ZF + 1000), Z(2825), ['nh3'], 'c');
+// oblak NH3 nad terénem – lehčí než vzduch, stoupá
+const cloud = new THREE.Group(); N.add(cloud);
+const PUFF = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 4, 64, 64, 62); gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(.55, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); return t; })();
+(() => { const r = rng(41); for (let i = 0; i < 46; i++) { const t = i / 45; const rad = .22 + .45 * t + r() * .12;
+    const sm = new THREE.SpriteMaterial({ map: PUFF, color: 0xe4f5cf, transparent: true, opacity: .75 - .4 * t, depthWrite: false });
+    const m = new THREE.Sprite(sm); const sc = rad * 3.2; m.scale.set(sc, sc, 1);
+    m.position.set(-.2 + 4.2 * r() + 1.2 * t, Y(ZT) + .35 + 2.6 * t + r() * .3, -1.0 - 1.4 * t - r() * .6); m.userData.base = m.position.y; cloud.add(m); } })();
+const arrowM = mat({ color: 0x1f4e9c });
+[[0.4, -1.9], [3.6, -2.1]].forEach(([x, z]) => { cyl(cloud, .035, 1.4, arrowM, [x, Y(ZT) + 1.4, z]);
+  const c = new THREE.Mesh(new THREE.ConeGeometry(.12, .3, 18), arrowM); c.position.set(x, Y(ZT) + 2.25, z); cloud.add(c); });
+label('NH₃ – plyn lehčí než vzduch (hutnota 0,6) stoupá', 2.0, Y(ZT) + 3.1, -2.0, ['nh3'], 'c');
+label('terén −0,980', X(KY + WE + 1500), Y(ZT) + .08, Z(-WN - 1500), ['stav', 'konv', 'nh3']);
+
+/* ------------------------------------------------------------------ světla */
+scene.add(new THREE.HemisphereLight(0xf4f1ea, 0x6b6153, .75));
+const sun = new THREE.DirectionalLight(0xffffff, .85); sun.position.set(-6, 12, 9); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 40 }); sun.shadow.bias = -.0006;
+scene.add(sun);
+const roomLight = new THREE.PointLight(0xfff1d6, .55, 7, 1.6); roomLight.position.set(2.0, 1.6, 2.1); scene.add(roomLight);
+
+/* ------------------------------------------------------------------ ovládání kamery (vlastní orbit) */
+let dirty = true;
+const target = new THREE.Vector3(2.0, .8, 2.1);
+const sph = { r: 11, th: -0.55, ph: 0.95 };   // th = azimut, ph = odklon od svislice
+function applyCam() { sph.ph = Math.min(1.5, Math.max(.15, sph.ph)); sph.r = Math.min(30, Math.max(1.2, sph.r));
+  camera.position.set(target.x + sph.r * Math.sin(sph.ph) * Math.sin(sph.th), target.y + sph.r * Math.cos(sph.ph), target.z + sph.r * Math.sin(sph.ph) * Math.cos(sph.th));
+  camera.lookAt(target); camera.updateMatrixWorld(); dirty = true; }
+const VIEWS = {
+  celek:    { t: [2.0, .7, 2.0], r: 10.5, th: -0.62, ph: 0.88, fov: 38, cut: true },
+  zvenku:   { t: [2.7, 1.2, 1.1], r: 7.6, th: 2.30, ph: 1.08, fov: 40, cut: false, ceil: true, cloud: false },
+  interier: { t: [1.2, 1.0, 0.4], r: 2.95, th: 0.997, ph: 1.38, fov: 70, cut: false, cloud: false },
+  vstup:    { t: [1.45, .75, 5.0], r: 3.9, th: 0.62, ph: 1.12, fov: 60, cut: false, cloud: false },
+};
+let cutOn = true;
+function setCut(on) { cutOn = on; dirty = true; Object.values(CUTMAT).forEach(m => { m.clippingPlanes = on ? [CUT] : []; m.needsUpdate = true; });
+  document.getElementById('t-cut').setAttribute('aria-pressed', String(on)); }
+function setView(name) { const v = VIEWS[name]; target.set(...v.t); Object.assign(sph, { r: v.r, th: v.th, ph: v.ph }); camera.fov = v.fov; camera.updateProjectionMatrix();
+  ceilingSlab.visible = name === 'interier' || name === 'vstup' || !!v.ceil; cloud.visible = v.cloud !== false; setCut(v.cut); applyCam();
+  document.querySelectorAll('.views button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.p === name))); }
+let drag = null;
+canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, b: e.button, pan: e.button === 2 || e.shiftKey }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointerup', () => { drag = null; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+const pts = new Map();
+canvas.addEventListener('pointermove', e => {
+  if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (!drag || pts.size > 1) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+  if (drag.pan) { const k = sph.r / 700; const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0); const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
+    target.addScaledVector(right, -dx * k).addScaledVector(up, dy * k); }
+  else { sph.th -= dx * .006; sph.ph -= dy * .006; }
+  applyCam();
+});
+canvas.addEventListener('wheel', e => { e.preventDefault(); sph.r *= Math.exp(e.deltaY * .0012); applyCam(); }, { passive: false });
+let pinch = 0;
+canvas.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); });
+['pointerup', 'pointercancel'].forEach(ev => canvas.addEventListener(ev, e => { pts.delete(e.pointerId); pinch = 0; }));
+canvas.addEventListener('pointermove', () => { if (pts.size === 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
+  if (pinch) { sph.r *= pinch / d; applyCam(); } pinch = d; } });
+
+/* ------------------------------------------------------------------ varianty, panel a popisky */
+const PANEL = {
+  stav: { h: 'Stávající stav', lead: 'Kotelna v 1.PP dnes: kamenné zdivo bez omítek, okna těsně nad terénem, staré prkenné dveře, výklenek se sopouchem po kotli.',
+    leg: [['#b9ab92', 'lomové kamenné zdivo 520 mm (sever, východ, západ)'], ['#c98a5e', 'cihelná stěna 370 mm k dílně, dveře D1 800 × 1700 mm'], ['#3d4247', 'stropní nosníky I N1, N2 – rozpětí 4,23 m bez podpory'], ['#bfd6dc', 'okna O1–O3 – jednoduché sklo, místy prasklé'], ['#7b5d3f', 'rostlý terén −0,980, podlaha 1,18 m pod terénem']],
+    nums: [['Podlahová plocha', '17,6 m²'], ['Světlá výška', '1,94 m'], ['Užitný objem V', '33,4 m³'], ['Celkové skóre S_C', '5,80 (KIÚ-I)']],
+    note: 'Rozměry podle projektové dokumentace a zaměření (10/2026). Model je zjednodušený, stěny omítky a drobné instalace nezobrazuje.' },
+  konv: { h: 'Návrh – konvenční zbraně', lead: 'Ochrana proti střelbě, střepinám a tlakové vlně v okolí domu, pobyt 4 osob až 7 dní.',
+    leg: [['#cbb894', 'pytle s pískem – vnější násyp 600 mm a výplň okenních nik'], ['#c99e5f', 'deska OSB 22 mm na rámu z latí uvnitř oken'], ['#d4a464', 'nové sloupky S1, S2 140 × 140 s roznášecí fošnou a zavětrováním'], ['#c94f3a', 'nouzový průraz 600 × 800 mm do chodby'], ['#6e7c6f', 'plné dveře D1 se závorou, žlutočerné nadpraží'], ['#14a3b4', 'VZT-P s ventilátorem VE oknem O3, VZT-O sopouchem'], ['#3f6aa8', 'palandy L1–L4 mimo okna, regál R1 před oknem O1, R2, stůl, chemické WC']],
+    nums: [['Kapacita (dlouhodobě)', '4 osoby'], ['Bez větrání', '8,4 h'], ['Osvětlenost', '≈ 184 lx'], ['Celkové skóre S_C', '6,96 (IÚ-I)']],
+    note: 'Opatření T0–T2 podle Metodiky UO (2025); statické prvky je nutné ověřit výpočtem.' },
+  nh3: { h: 'Návrh – únik amoniaku', lead: 'Únik plynné fáze amoniaku z cisterny na hlavní silnici 0,5–1 km od domu. Ochranný prostor typu II podle Pivovarníka (2006) – suterén proti škodlivině lehčí než vzduch, 3–4 osoby, krátkodobý pobyt.',
+    leg: [['#cfe9ff', 'PE fólie přes okenní otvory a dveře, obvod přelepený páskou'], ['#5a8fb8', 'mokrá textilie u prahu dveří D1'], ['#2b2f33', 'ucpaný sopouch, vyplněné otvory ve výklenku, utěsněné prostupy'], ['#9fb7c4', 'hygienická smyčka v dílně – PE závěs, vana na obuv, pytel na oděvy'], ['#323a2e', 'ochranné masky s filtrem typu K (ABEK2-P3)'], ['#dff2c8', 'oblak NH₃ – plyn je lehčí než vzduch a stoupá']],
+    nums: [['Bez větrání, 4 osoby', '8,4 h'], ['Bez větrání, 3 osoby', '11,1 h'], ['Výměna vzduchu', '1,5 → 0,3 h⁻¹'], ['Vrchol uvnitř (500 ppm, 1 h)', '388 → 130 ppm']],
+    note: 'Únik kapalné fáze vytváří u zdroje studenou mlhu těžší než vzduch – pak a při pokynu k ukrytí ve vyšších patrech se kotelna nepoužívá a platí pokyn HZS.' },
+};
+let variant = 'konv';
+const ONLY = ['stav', 'nh3'], DEF = 'nh3';   // varianty zobrazené na této stránce
+document.querySelectorAll('.seg button').forEach(b => { if (!ONLY.includes(b.dataset.v)) b.remove(); });
+function setVariant(v) { variant = v; G.stav.visible = v === 'stav'; G.konv.visible = v === 'konv'; G.nh3.visible = v === 'nh3';
+  G.raw.visible = v === 'stav'; G.plaster.visible = v !== 'stav';
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+  const p = PANEL[v]; const el = document.getElementById('panel');
+  el.innerHTML = `<h2>${p.h}</h2><p class="lead">${p.lead}</p><ul class="legend">${p.leg.map(([c, t]) => `<li><span class="sw" style="background:${c}"></span><span>${t}</span></li>`).join('')}</ul>
+    <dl class="nums">${p.nums.map(([a, b]) => `<dt>${a}</dt><dd>${b.replace('S_C', 'S<sub>C</sub>')}</dd>`).join('')}</dl><p class="note">${p.note}</p>`;
+  buildLabels(); dirty = true; }
+const labelsEl = document.getElementById('labels'); let lblOn = true; let lblNodes = [];
+function buildLabels() { labelsEl.innerHTML = ''; lblNodes = labels.filter(l => l.vars.includes(variant)).map(l => { const d = document.createElement('div'); d.className = 'lbl ' + l.cls; d.textContent = l.text; labelsEl.appendChild(d); return [l, d]; }); }
+const ray = new THREE.Raycaster(); const CUTSET = new Set(Object.values(CUTMAT));
+function shown(o) { while (o) { if (!o.visible) return false; o = o.parent; } return true; }
+function occlusion() { const occ = []; scene.traverse(o => { if (o.isMesh && !o.material.transparent && shown(o)) occ.push(o); });
+  const cp = camera.position; const dir = new THREE.Vector3();
+  lblNodes.forEach(([l, d]) => { dir.copy(l.p).sub(cp); const dist = dir.length(); dir.normalize(); ray.set(cp, dir); ray.far = Math.max(0, dist - .15);
+    const hits = ray.intersectObjects(occ, false).filter(hh => !(cutOn && CUTSET.has(hh.object.material) && hh.point.y > CUT.constant));
+    l.hidden = hits.length > 0; }); dirty = false; }
+function placeLabels() { if (!lblOn) { labelsEl.hidden = true; return; } labelsEl.hidden = false; if (dirty) occlusion();
+  const w = canvas.clientWidth, h = canvas.clientHeight; const v = new THREE.Vector3();
+  const placed = [];
+  lblNodes.forEach(([l, d]) => { v.copy(l.p).project(camera); const vis = !l.hidden && v.z < 1 && Math.abs(v.x) < .97 && Math.abs(v.y) < .97;
+    if (!vis) { d.style.display = 'none'; return; }
+    d.style.display = ''; const ax = (v.x + 1) / 2 * w, ay = (1 - v.y) / 2 * h - 4; const lw = d.offsetWidth, lh = d.offsetHeight;
+    const cx = Math.min(Math.max(ax, lw / 2 + 4), w - lw / 2 - 4);          // popisek nevyjede z plochy
+    let ok = false;
+    for (let k = 0; k <= 5 && !ok; k++) { const yy = ay - k * (lh + 4);
+      const r = { l: cx - lw / 2 - 3, r: cx + lw / 2 + 3, t: yy - lh - 2, b: yy + 2 };
+      if (r.t < 0) break;
+      if (!placed.some(p => p.l < r.r && p.r > r.l && p.t < r.b && p.b > r.t)) { placed.push(r); ok = true;
+        d.style.left = cx + 'px'; d.style.top = yy + 'px'; d.style.setProperty('--ex', (ay - yy) + 'px');
+        d.style.setProperty('--sx', (50 + (ax - cx) / lw * 100) + '%'); } }
+    if (!ok) d.style.display = 'none'; }); }
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setVariant(b.dataset.v)));
+document.querySelectorAll('.views button').forEach(b => b.addEventListener('click', () => setView(b.dataset.p)));
+document.getElementById('t-lbl').addEventListener('click', e => { lblOn = !lblOn; e.currentTarget.setAttribute('aria-pressed', String(lblOn)); });
+document.getElementById('t-cut').addEventListener('click', () => setCut(!cutOn));
+
+/* ------------------------------------------------------------------ smyčka vykreslování */
+function themeBg() { const c = getComputedStyle(document.documentElement).getPropertyValue('--scene').trim() || '#dfe3e1'; renderer.setClearColor(new THREE.Color(c)); }
+function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; if (canvas.width !== Math.round(w * renderer.getPixelRatio()) || canvas.height !== Math.round(h * renderer.getPixelRatio())) {
+  renderer.setSize(w, h, false); camera.aspect = w / Math.max(1, h); camera.updateProjectionMatrix(); dirty = true; } }
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let t0 = performance.now();
+function frame(now) { resize(); if (!reduce && G.nh3.visible) { const t = (now - t0) / 1000; cloud.children.forEach((m, i) => { m.position.y = m.userData.base + .25 * Math.sin(t * .4 + i); }); }
+  renderer.render(scene, camera); placeLabels(); requestAnimationFrame(frame); }
+themeBg(); window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', themeBg);
+new MutationObserver(themeBg).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+let start = 'celek'; try { const h = (location.hash || '').slice(1); if (VIEWS[h]) start = h; } catch (e) { /* bez hash */ }
+setVariant(DEF); setView(start); requestAnimationFrame(frame);
+// rozhraní pro export obrázků a modelu (používá se jen při přípravě protokolů)
+window.__ukryt = { scene, renderer, camera, G, setVariant, setView, setCut, applyCam, sph, target, labels: on => { lblOn = on; },
+  renderOnce: () => { resize(); renderer.render(scene, camera); placeLabels(); } };
+})();
+</script>
+
+</body>
+</html>
