@@ -195,7 +195,7 @@ const TEX = {
   plank: canvasTex(256, 256, (g, w, h) => { const r = rng(23); for (let i = 0; i < 6; i++) { const c = r() * 20;
       g.fillStyle = `rgb(${52 + c},${46 + c},${40 + c})`; g.fillRect(i * w / 6, 0, w / 6 - 3, h); } noise(g, w, h, .15, r, 3000); }, 1.0),
   geo: canvasTex(128, 128, (g, w, h) => { const r = rng(29); g.fillStyle = '#eceae4'; g.fillRect(0, 0, w, h); noise(g, w, h, .08, r, 1500); }, 1.0),
-  render: canvasTex(256, 256, (g, w, h) => { const r = rng(31); g.fillStyle = '#d6c4a0'; g.fillRect(0, 0, w, h); noise(g, w, h, .08, r, 7000); }, 1.2),
+  render: canvasTex(256, 256, (g, w, h) => { const r = rng(31); g.fillStyle = '#d5d3cc'; g.fillRect(0, 0, w, h); noise(g, w, h, .08, r, 7000); }, 1.2),
   plinth: canvasTex(256, 256, (g, w, h) => { const r = rng(33); g.fillStyle = '#6d6c68'; g.fillRect(0, 0, w, h); noise(g, w, h, .4, r, 16000); }, 0.8),
   tiles: canvasTex(256, 256, (g, w, h) => { const r = rng(35); g.fillStyle = '#4a2c22'; g.fillRect(0, 0, w, h);
     const R = 4, Cc = 8; for (let j = 0; j < R; j++) for (let i = 0; i <= Cc; i++) { const x = i * w / Cc - (j % 2 ? w / Cc / 2 : 0), y = j * h / R, c = r() * 22;
@@ -203,6 +203,24 @@ const TEX = {
       g.lineTo(x + w / Cc - 3, y + h / R - 6); g.quadraticCurveTo(x + w / Cc / 2, y + h / R + 2, x + 3, y + h / R - 6); g.closePath(); g.fill(); }
     noise(g, w, h, .12, r, 4000); }, 1.3),
   grass: canvasTex(256, 256, (g, w, h) => { const r = rng(37); g.fillStyle = '#7f9a5c'; g.fillRect(0, 0, w, h); noise(g, w, h, .25, r, 14000); }, 2.0),
+  asphalt: canvasTex(256, 256, (g, w, h) => { const r = rng(39); g.fillStyle = '#4a4b4c'; g.fillRect(0, 0, w, h); noise(g, w, h, .3, r, 18000); }, 1.5),
+  conc: canvasTex(256, 256, (g, w, h) => { const r = rng(45); g.fillStyle = '#a6a299'; g.fillRect(0, 0, w, h); noise(g, w, h, .35, r, 14000);
+    for (let i = 0; i < 9; i++) { g.fillStyle = `rgba(60,58,52,${.05 + r() * .08})`; g.fillRect(r() * w, h * .55 + r() * h * .3, 20 + r() * 60, h); } }, 1.0),
+  paver: canvasTex(256, 256, (g, w, h) => { const r = rng(43); g.fillStyle = '#5c5a56'; g.fillRect(0, 0, w, h);
+    for (let j = 0; j < 8; j++) for (let i = -1; i < 4; i++) { const c = r() * 18; g.fillStyle = `rgb(${132 + c},${130 + c},${125 + c})`;
+      g.fillRect(i * 64 + (j % 2) * 32 + 2, j * 32 + 2, 60, 28); } noise(g, w, h, .08, r, 3000); }, 0.8),
+  paverR: canvasTex(256, 256, (g, w, h) => { const r = rng(47); g.fillStyle = '#5a3f36'; g.fillRect(0, 0, w, h);
+    for (let j = 0; j < 8; j++) for (let i = -1; i < 4; i++) { const c = r() * 18; g.fillStyle = `rgb(${150 + c},${88 + c * .6},${72 + c * .5})`;
+      g.fillRect(i * 64 + (j % 2) * 32 + 2, j * 32 + 2, 60, 28); } }, 0.8),
+  weld: (() => { const t = canvasTex(256, 256, (g, w, h) => { g.clearRect(0, 0, w, h); g.strokeStyle = '#ffffff'; g.lineWidth = 6;
+    for (let i = 0; i <= w; i += 64) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, h); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(w, i); g.stroke(); } }, .36);
+    t.anisotropy = 8; return t; })(),
+  chain: (() => { const t = canvasTex(256, 256, (g, w, h) => { g.clearRect(0, 0, w, h); g.strokeStyle = '#ffffff'; g.lineWidth = 5;
+    for (let i = -w; i <= 2 * w; i += 64) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + h, h); g.stroke(); g.beginPath(); g.moveTo(i, h); g.lineTo(i + h, 0); g.stroke(); } }, .36);
+    t.anisotropy = 8; return t; })(),
+  boards: canvasTex(256, 256, (g, w, h) => { const r = rng(49); g.fillStyle = '#2a2a2a'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 6; i++) { const c = 200 + r() * 40; g.fillStyle = `rgb(${c},${c},${c})`; g.fillRect(i * w / 6 + 3, 0, w / 6 - 6, h); }
+    noise(g, w, h, .15, r, 4000); }, 0.8),
 };
 const mat = (opt) => new THREE.MeshStandardMaterial(Object.assign({ roughness: .92, metalness: 0 }, opt));
 const MAT = {
@@ -223,9 +241,21 @@ const MAT = {
   infill: mat({ color: 0xc94f3a, map: TEX.brick }), cloud: new THREE.MeshStandardMaterial({ color: 0xdff2c8, transparent: true, opacity: .22, depthWrite: false, roughness: 1 }),
   tub: mat({ color: 0x3b7bd1, roughness: .5 }), white: mat({ color: 0xf2f2ee }), yellow: mat({ color: 0xf2c200 }),
   render: mat({ map: TEX.render }), plinth: mat({ map: TEX.plinth, roughness: 1 }), roof: mat({ map: TEX.tiles, roughness: .85 }),
-  ridge: mat({ color: 0x5a3328, roughness: .85 }), grass: mat({ map: TEX.grass, roughness: 1 }), gutter: mat({ color: 0x7f898b, metalness: .4, roughness: .5 }),
+  ridge: mat({ color: 0x5a3328, roughness: .85 }), grass: mat({ map: TEX.grass, roughness: 1 }), gutter: mat({ color: 0x8fa99b, metalness: .3, roughness: .5 }),
   frameW: mat({ color: 0xeeede8, roughness: .5 }), doorW: mat({ color: 0x5b3a26, roughness: .7 }), concreteL: mat({ color: 0xbbb8b0 }),
   glassBlock: new THREE.MeshPhysicalMaterial({ color: 0xdfeef2, transparent: true, opacity: .6, roughness: .4 }),
+  asphalt: mat({ map: TEX.asphalt, roughness: 1 }), paver: mat({ map: TEX.paver }), paverR: mat({ map: TEX.paverR }),
+  curb: mat({ color: 0xb4afa4 }), wallC: mat({ map: TEX.conc }),
+  weld: mat({ map: TEX.weld, color: 0xc9ccc8, transparent: true, depthWrite: false, side: THREE.DoubleSide, metalness: .3, roughness: .5 }),
+  chain: mat({ map: TEX.chain, color: 0xa9aca8, transparent: true, depthWrite: false, side: THREE.DoubleSide, metalness: .3, roughness: .5 }),
+  tubeL: mat({ color: 0xc4c6c1, metalness: .3, roughness: .5 }), tubeW: mat({ color: 0xe2e3df, metalness: .2, roughness: .5 }),
+  tubeG: mat({ color: 0x8e938f, metalness: .4, roughness: .5 }), rust: mat({ color: 0x7b3b27, roughness: .85 }),
+  post: mat({ color: 0x5c3322, metalness: .2, roughness: .8 }), cabinet: mat({ color: 0xb6babc, metalness: .3, roughness: .5 }),
+  boardsD: mat({ map: TEX.boards, color: 0x6b4c3a }), boardsB: mat({ map: TEX.boards, color: 0x8a6046 }), shed: mat({ map: TEX.boards, color: 0x5d8a6b }),
+  garage: mat({ map: TEX.render, color: 0xf2eee6 }), gdoor: mat({ color: 0x1e5b40, roughness: .6 }), groof: mat({ color: 0x4a4a48, roughness: .8 }),
+  plant: mat({ color: 0x4f7d3c, roughness: .9 }), surround: mat({ color: 0xd2ad72 }), frameB: mat({ color: 0x6e4528, roughness: .6 }),
+  brass: mat({ color: 0xb58d3c, metalness: .6, roughness: .4 }), pvc: mat({ color: 0x6f757a, roughness: .5 }), pipeW: mat({ color: 0xdcdcd5, roughness: .5 }),
+  railB: mat({ color: 0x5e4232, metalness: .3, roughness: .6 }), meterTop: mat({ color: 0x2f62c4, roughness: .4 }),
 };
 // materiály stěn bližších ke kameře (jižní a západní) se při pohledu „Celek“ seříznou
 const CUT = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1.05);
@@ -332,6 +362,20 @@ label('O1', X((O1[0] + O1[1]) / 2), Y(ZW) + .12, Z(-WN / 2), ['stav', 'konv', 'n
 label('O3', X(KY + WE / 2), Y(ZW) + .12, Z((O3[0] + O3[1]) / 2), ['stav', 'konv', 'nh3']);
 // zásuvka 230 V na pilíři vedle výklenku (u žárovkového svítidla)
 box(C, 3180, 3280, 0, 25, ZF + 1500, ZF + 1600, MAT.dark);
+// vodovodní přípojka (foto rohu, sdělení vlastníka): z ulice prostupem severní zdí těsně nad podlahou, krátce podél zdi
+// do severovýchodního rohu, krátká stoupačka s kulovým kohoutem HUV a vodoměrem; potrubí za vodoměrem je odříznuté
+const WX = 70, WY = KY - 70, WZ0 = ZF + 110, WP = KY - 420;
+const elbow = (y, x, z) => { const o = new THREE.Mesh(new THREE.SphereGeometry(.032, 14, 10), MAT.white); o.position.set(X(y), Y(z), Z(x)); C.add(o); };
+cyl(C, .02, M(WX + 300), MAT.pvc, [X(WP), Y(WZ0), Z((WX - 300) / 2)], [Math.PI / 2, 0, 0]);              // prostup severní zdí
+elbow(WP, WX, WZ0);
+cyl(C, .02, M(WY - WP), MAT.pvc, [X((WP + WY) / 2), Y(WZ0), Z(WX)], [0, 0, Math.PI / 2]);               // podél severní zdi u podlahy
+elbow(WY, WX, WZ0);
+cyl(C, .02, M(ZF + 420 - WZ0), MAT.pvc, [X(WY), Y((WZ0 + ZF + 420) / 2), Z(WX)]);                       // krátká stoupačka v rohu
+box(C, WX - 30, WX + 30, WY - 35, WY + 35, ZF + 300, ZF + 370, MAT.brass);                                // kulový kohout HUV
+box(C, WX - 15, WX + 15, WY - 175, WY - 35, ZF + 370, ZF + 390, MAT.red);
+cyl(C, .05, M(100), MAT.brass, [X(WY), Y(ZF + 470), Z(WX)]); cyl(C, .042, M(12), MAT.meterTop, [X(WY), Y(ZF + 526), Z(WX)]);   // vodoměr
+cyl(C, .02, M(120), MAT.pvc, [X(WY), Y(ZF + 592), Z(WX)]); cyl(C, .021, M(6), MAT.dark, [X(WY), Y(ZF + 652), Z(WX)]);   // odříznutý konec
+label('vodoměr + HUV', X(WY - 60), Y(ZF + 900), Z(WX + 60), ['stav', 'konv', 'nh3']);
 
 /* ------------------------------------------------------------------ celý dům (PD: půdorysy 1.PP a 1.NP, řez, pohledy; fotografie)
    1.PP: vnější líc x −520…8120, y −7850…4600; 1.NP: vnější líc x −620…8220, y −7950…4700 (o 100 mm přesahuje sokl) */
@@ -367,7 +411,7 @@ function win(parent, side, a0, a1, z0, z1, fm = MAT.frameW, gm = MAT.glass) {
   if (a1 - a0 > 1300) f((a0 + a1) / 2 - w / 2, (a0 + a1) / 2 + w / 2, z0, z1);
 }
 // ---- terén: blok zeminy s otvorem pro dům a pro schodiště do suterénu (horní plocha tráva)
-const TX0 = -6500, TX1 = 15500, TY0 = -15000, TY1 = 11000, PITX = 10270;
+const TX0 = -6500, TX1 = 23500, TY0 = -15000, TY1 = 11000, PITX = 10270;
 function terrain(x0, x1, y0, y1) {
   const w = M(y1 - y0), h = M(ZT - (ZF - 400)), d = M(x1 - x0);
   const g = boxUV(new THREE.BoxGeometry(w, h, d), w, h, d, 2.0);
@@ -376,7 +420,7 @@ function terrain(x0, x1, y0, y1) {
 }
 terrain(TX0, HX0, TY0, TY1); terrain(HX0, HX1, TY0, HY0); terrain(HX0, HX1, HY1, TY1);
 terrain(HX1, TX1, TY0, -1800); terrain(HX1, TX1, -200, TY1); terrain(PITX, TX1, -1800, -200);
-box(H, HX0 - 900, HX0 - 20, HY0 - 900, HY1 + 900, ZT, ZT + 4, MAT.geo, { cast: false });       // geotextilie (foto)
+box(H, -2620, HX0 - 20, UY0 - 50, 4800, ZT, ZT + 4, MAT.geo, { cast: false });                 // geotextilie (foto)
 box(H, HX0, HX1 + 600, HY1 + 20, HY1 + 900, ZT, ZT + 4, MAT.geo, { cast: false });
 // ---- 1.PP mimo kotelnu: obvodové a vnitřní zdivo, podlaha, okna, dveře, schodiště
 const winS = [[1690, 2490], [300, 1100], [-5760, -4960], [-4470, -3670]], winNs = [[-5840, -5040], [-4550, -3750]];
@@ -422,9 +466,9 @@ slab(U, [pS(UY0, 0), pS(UY1, 0), pS(UY1, ZWT), pS(450, ZWT), pS(450, ZCE), pS(YC
 const gable = (p, n, holes) => slab(U, [p(-100, 0), p(7700, 0), p(7700, ZWT), p(UX1, ZWT), p(XR, ZRIDGE - 320), p(UX0, ZWT), p(-100, ZWT)], n, .52, MAT.render, holes);
 gable(pE, new THREE.Vector3(1, 0, 0), [rectH(pE, 1340, 2450, 1000, 2400), rectH(pE, 2820, 4840, 4000, 5200)]);
 gable(pW, new THREE.Vector3(-1, 0, 0), [rectH(pW, 2820, 4840, 4000, 5200), rectH(pW, 600, 1000, 4300, 4850)]);
-[[700, 2660, 1000, 2400], [-6170, -4210, 1000, 2400]].forEach(w => win(U, 'N', ...w));
-WS1.forEach(w => win(U, 'S', ...w));
-win(U, 'E', 1340, 2450, 1000, 2400); win(U, 'E', 2820, 4840, 4000, 5200); win(U, 'W', 2820, 4840, 4000, 5200); win(U, 'W', 600, 1000, 4300, 4850);
+[[700, 2660, 1000, 2400], [-6170, -4210, 1000, 2400]].forEach(w => win(U, 'N', ...w, MAT.frameB));
+WS1.forEach(w => win(U, 'S', ...w, MAT.frameB));
+win(U, 'E', 1340, 2450, 1000, 2400, MAT.frameB); win(U, 'E', 2820, 4840, 4000, 5200, MAT.frameB); win(U, 'W', 2820, 4840, 4000, 5200, MAT.frameB); win(U, 'W', 600, 1000, 4300, 4850, MAT.frameB);
 box(U, UX0 + 100, UX0 + 160, -1450, -495, 1400, 3500, MAT.glassBlock);                            // luxfery nad vstupem
 box(U, UX0 + 200, UX0 + 250, DN[0] + 30, DN[1] - 30, -720, 1250, MAT.doorW);                      // vstupní dveře
 box(H, -1500, HX0 - 20, -1700, -250, ZT, -830, MAT.concreteL);                                    // stupeň před vstupem
@@ -463,16 +507,168 @@ cyl(U, .065, M(ye1 - ye0), MAT.gutter, [X((ye0 + ye1) / 2), Y(ZEAVE) - .08, Z(UX
 [[-6650, -6050], [2260, 2860]].forEach(([a, b]) => slab(U, [V(a, 7000, zRoofS(7000) + 40), V(b, 7000, zRoofS(7000) + 40), V(b, 6100, zRoofS(6100) + 40), V(a, 6100, zRoofS(6100) + 40)], nSo, .06, MAT.dark, [], false));
 [[3375, 3825, -475, -25], [4875, 5325, -3125, -2675]].forEach(([a, b, c, d]) => { box(U, a, b, c, d, Z2, 8520, MAT.render); box(U, a - 40, b + 40, c - 40, d + 40, 8520, 8580, MAT.dark); });
 // ---- terasa u kuchyně, schodiště do zahrady, balkon 2.NP
-box(H, UX1, 9820, -7440, -4070, ZT, 240, MAT.concreteL);
-for (let k = 0; k < 7; k++) box(H, UX1 + k * 230, UX1 + (k + 1) * 230, -4070, -3310, ZT, 240 - (k + 1) * 174, MAT.concreteL);
-function railing(parent, pts, z0, h = 1000) {
+box(H, UX1, 9820, -7440, -4070, 80, 240, MAT.concreteL);                                         // deska terasy na ocelových sloupcích (foto)
+[[9720, -7360], [9720, -4150], [UX1 + 120, -7360]].forEach(([x, y]) => box(H, x - 50, x + 50, y - 50, y + 50, ZT, 80, MAT.steel));
+function beam(parent, p, q, w, h, m) { const L = p.distanceTo(q), o = new THREE.Mesh(new THREE.BoxGeometry(w, h, L), m);
+  o.position.copy(p).add(q).multiplyScalar(.5); o.lookAt(q); o.castShadow = true; o.receiveShadow = true; parent.add(o); return o; }
+for (let k = 0; k < 7; k++) box(H, UX1 + 60 + k * 230, UX1 + 60 + (k + 1) * 230, -4010, -3370, 240 - (k + 1) * 174 - 25, 240 - (k + 1) * 174, MAT.rust);
+[-4030, -3350].forEach(y => beam(H, V(y, 9820, 225), V(y, UX1 + 60 + 7 * 230 + 120, ZT + 10), .02, .16, MAT.steel));
+beam(H, V(-3330, 9820, 1240), V(-3330, UX1 + 60 + 7 * 230 + 80, ZT + 1000), .04, .04, MAT.steel);
+[0, 3, 7].forEach(k => box(H, UX1 + 60 + k * 230 - 20, UX1 + 60 + k * 230 + 20, -3350, -3310, 240 - k * 174 - 30, 240 - k * 174 + 1000 - 30, MAT.steel));
+function railing(parent, pts, z0, h = 1000, m = MAT.steel) {
   for (let i = 0; i < pts.length - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1]; const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / 1100));
-    for (let k = 0; k <= n; k++) { const x = x0 + (x1 - x0) * k / n, y = y0 + (y1 - y0) * k / n; box(parent, x - 20, x + 20, y - 20, y + 20, z0, z0 + h, MAT.steel); }
-    box(parent, Math.min(x0, x1) - 25, Math.max(x0, x1) + 25, Math.min(y0, y1) - 25, Math.max(y0, y1) + 25, z0 + h - 40, z0 + h, MAT.steel);
-    box(parent, Math.min(x0, x1) - 10, Math.max(x0, x1) + 10, Math.min(y0, y1) - 10, Math.max(y0, y1) + 10, z0 + 450, z0 + 480, MAT.steel); } }
-railing(H, [[UX1 + 40, -7400], [9780, -7400], [9780, -4110]], 240);
+    for (let k = 0; k <= n; k++) { const x = x0 + (x1 - x0) * k / n, y = y0 + (y1 - y0) * k / n; box(parent, x - 20, x + 20, y - 20, y + 20, z0, z0 + h, m); }
+    box(parent, Math.min(x0, x1) - 25, Math.max(x0, x1) + 25, Math.min(y0, y1) - 25, Math.max(y0, y1) + 25, z0 + h - 40, z0 + h, m);
+    box(parent, Math.min(x0, x1) - 10, Math.max(x0, x1) + 10, Math.min(y0, y1) - 10, Math.max(y0, y1) + 10, z0 + 450, z0 + 480, m); } }
+railing(H, [[UX1 + 40, -7400], [9780, -7400], [9780, -4110]], 240, 1000, MAT.tubeL);
 box(U, UX1, 9300, -3640, -150, Z2 - 130, Z2, MAT.concreteL);
-railing(U, [[UX1 + 40, -3600], [9260, -3600], [9260, -190], [UX1 + 40, -190]], Z2);
+railing(U, [[UX1 + 40, -3600], [9260, -3600], [9260, -190], [UX1 + 40, -190]], Z2, 1000, MAT.railB);
+// ---- okolí podle fotografií a panoramat ulice: nízká opěrná zeď v uliční čáře s plotem, vjezdová a boční brána,
+//      chodník, asfaltový vjezd a dvůr, garáž, kůlna a hranice pozemku (rozměry odečtené z fotografií, orientačně)
+const XW0 = -2870, XW1 = -2620, Xc = (XW0 + XW1) / 2;                 // zeď 250 mm, líc 2,1 m před severní stěnou
+const ZST = ZT + 280, ZWALL = ZST + 380, XK = XW0 - 2000;              // chodník asi 0,3 m nad dvorem, zeď 0,4 m nad chodníkem
+const YG0 = 4800, YG1 = 8300, YE = 8800;                               // vjezdová brána (3,5 m) a východní hranice
+const YB1 = -8200, YB0 = -11500, YN0 = -14800;                         // boční brána u západního štítu, brána souseda
+const GX0 = 12000, GX1 = 20000, GY0 = 4600, GY1 = 8600;                // garáž: západní stěna v líci východní stěny domu
+function meshPlane(parent, a0, a1, z0, z1, m, along = 'y', t = Xc) {   // pletivo: rovina s průhlednou texturou
+  const w = M(a1 - a0), h = M(z1 - z0), g = new THREE.PlaneGeometry(w, h), uv = g.attributes.uv, s = m.map.userData.size;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / s, uv.getY(i) * h / s);
+  const o = new THREE.Mesh(g, m); o.renderOrder = 2;
+  if (along === 'y') o.position.set(X((a0 + a1) / 2), Y((z0 + z1) / 2), Z(t));
+  else { o.rotation.y = Math.PI / 2; o.position.set(X(t), Y((z0 + z1) / 2), Z((a0 + a1) / 2)); }
+  parent.add(o); return o;
+}
+function postR(parent, x, y, z0, h, r = .03, m = MAT.post, cap = true) {   // kulatý sloupek se špičkou
+  cyl(parent, r, M(h), m, [X(y), Y(z0 + h / 2), Z(x)]);
+  if (cap) { const c = new THREE.Mesh(new THREE.ConeGeometry(r * 1.5, .09, 10), m); c.position.set(X(y), Y(z0 + h) + .045, Z(x)); parent.add(c); }
+}
+// pole plotu na zdi: rám z trubek a svařované pletivo (foto, panorama)
+function fencePanel(a0, a1, z0 = ZWALL + 60, z1 = ZWALL + 1060, t = 25) {
+  const B = (p, q, za, zb) => box(H, Xc - t / 2, Xc + t / 2, p, q, za, zb, MAT.tubeL);
+  B(a0, a1, z1 - t, z1); B(a0, a1, z0, z0 + t); B(a0, a0 + t, z0, z1); B(a1 - t, a1, z0, z1);
+  meshPlane(H, a0 + t, a1 - t, z0 + t, z1 - t, MAT.weld);
+}
+function fenceRun(a0, a1, step = 2000, first = 1000) {                  // sloupky a pole mezi a0 a a1 (a1 = u brány)
+  const ps = [a1]; let p = a1 - first; while (p > a0 + 400) { ps.push(p); p -= step; } ps.push(a0);
+  ps.forEach((q, i) => { if (i > 0 && i < ps.length - 1) postR(H, Xc, q, ZWALL, 1150); if (i > 0) fencePanel(q + 35, ps[i - 1] - 35); });
+}
+// kovová brána: rám z trubek, horní část pletivo, dole plech (vjezd: pletivo s oky, plech zrezivělý)
+function gate(a0, a1, o = {}) {
+  const { bays = 2, low = 2, mesh = MAT.weld, tube = MAT.tubeW, z0 = ZST + 40, z1 = ZST + 1540, zr = ZST + 400, t = 40, brace = 0 } = o;
+  const B = (p, q, za, zb) => box(H, Xc - t / 2, Xc + t / 2, p, q, za, zb, tube);
+  B(a0, a1, z1 - t, z1); B(a0, a1, z0, z0 + t); if (low) B(a0, a1, zr - t / 2, zr + t / 2);
+  for (let k = 0; k <= bays; k++) { const d = a0 + (a1 - a0) * k / bays; B(Math.max(a0, d - t / 2), Math.min(a1, d + t / 2), z0, z1); }
+  meshPlane(H, a0 + t, a1 - t, (low ? zr : z0) + t / 2, z1 - t, mesh);
+  for (let k = 0; k < low; k++) box(H, Xc - 6, Xc + 6, a0 + (a1 - a0) * k / low + t / 2, a0 + (a1 - a0) * (k + 1) / low - t / 2, z0 + t, zr - t / 2, MAT.rust);
+  for (let k = 0; k < brace; k++) { const p = a0 + (a1 - a0) * k / brace, q = p + (a1 - a0) / brace, dx = M(q - p), dz = M(z1 - z0), L = Math.hypot(dx, dz);
+    cyl(H, .016, L, tube, [X((p + q) / 2), Y((z0 + z1) / 2), Z(Xc)], [0, 0, -Math.atan2(dx, dz) * (k % 2 ? -1 : 1)]); }
+}
+// prkenný plot: deska s texturou prken + dvě latě
+function boards(parent, along, a0, a1, t, z0, h, m) {
+  along === 'y' ? box(parent, t - 12, t + 12, a0, a1, z0, z0 + h, m) : box(parent, a0, a1, t - 12, t + 12, z0, z0 + h, m);
+  [z0 + 250, z0 + h - 300].forEach(z => along === 'y' ? box(parent, t + 12, t + 40, a0, a1, z, z + 70, m) : box(parent, a0, a1, t + 12, t + 40, z, z + 70, m));
+}
+// sklonitá plocha (rampa) mezi dvěma hranami kolmými k ose x
+function ramp(y0, y1, xa, za, xb, zb, m) {
+  const a = V(y0, xa, za), b = V(y1, xa, za), c = V(y0, xb, zb);
+  const n = new THREE.Vector3().crossVectors(b.clone().sub(a), c.clone().sub(a)).normalize(); if (n.y < 0) n.negate();
+  slab(H, [a, b, V(y1, xb, zb), c], n, .4, m, [], false);
+}
+// ulice: vozovka, obrubník, chodník ze šedé dlažby s červeným pruhem u obrubníku (panorama)
+box(H, TX0, XK - 150, TY0, TY1, ZT, ZST - 120, MAT.asphalt, { cast: false });
+box(H, XK - 150, XK, TY0, TY1, ZT, ZST + 10, MAT.curb, { cast: false });
+box(H, XK, XK + 200, TY0, TY1, ZT, ZST, MAT.paverR, { cast: false });
+box(H, XK + 200, XW0, TY0, TY1, ZT, ZST, MAT.paver, { cast: false });
+// opěrná zeď v uliční čáře, v otvorech bran práh v úrovni chodníku
+[[TY0, YN0 - 100], [YB0 - 100, YB0 - 50], [YB1 + 50, YG0 - 50], [YG1 + 50, TY1]].forEach(([a, b]) => box(H, XW0, XW1, a, b, ZT - 200, ZWALL, MAT.wallC));
+[[YN0 - 100, YB0 - 100], [YB0 - 50, YB1 + 50], [YG0 - 50, YG1 + 50]].forEach(([a, b]) => box(H, XW0, XW1, a, b, ZT, ZST, MAT.paver, { cast: false }));
+// vjezdová brána: dvě křídla z trubek, pletivo s kosými oky, dole zrezivělý plech; čtyřhranné sloupky
+gate(YG0, YG1, { bays: 3, low: 3, mesh: MAT.chain });
+[YG0 - 45, YG1 + 45].forEach(y => box(H, Xc - 40, Xc + 40, y - 40, y + 40, ZST - 300, ZST + 1620, MAT.post));
+// plot na zdi mezi bočními a vjezdovou branou (sloupky po 2 m, u vjezdu 1 m), poštovní schránka u vjezdu
+fenceRun(YB1 + 60, YG0 - 85);
+box(H, Xc - 125, Xc - 20, YG0 - 650, YG0 - 450, ZWALL + 780, ZWALL + 960, MAT.white);
+// boční brána u západního štítu: bílý rám, svařované pletivo, dole plech; východní sloupek rezavý, západní šedý
+gate(YB0 + 20, YB1 - 20, { bays: 3, low: 2 });
+postR(H, Xc, YB1 + 10, ZST - 300, 2000, .05);
+postR(H, Xc, YB0 - 45, ZST - 300, 1950, .045, MAT.tubeG, false);
+// sousední brána na západě (šedá se vzpěrami) a sousední oplocení
+gate(YN0, YB0 - 90, { bays: 2, low: 0, tube: MAT.tubeG, brace: 2 });
+postR(H, Xc, YN0 - 50, ZST - 300, 1950, .045, MAT.tubeG, false);
+boards(H, 'y', YG1 + 100, TY1, Xc, ZST + 30, 1780, MAT.boardsD);
+// skříň HUP na betonovém pilíři za zdí (foto)
+box(H, XW1, XW1 + 400, 1000, 1500, ZT, ZT + 680, MAT.wallC);
+box(H, XW1 + 20, XW1 + 380, 1020, 1480, ZT + 680, ZT + 1250, MAT.cabinet);
+// dřevěná branka mezi zdí a severozápadním rohem domu (uzavírá pás podél severní stěny)
+boards(H, 'x', XW1 + 10, HX0 - 30, UY0 - 70, ZT, 1500, MAT.boardsD);
+// asfalt kolem domu (foto): rampa od vjezdové brány, dvůr podél východní stěny, plocha před jižní fasádou až ke garáži
+const XA = 13500, BED = HX1 + 700;
+ramp(YG0, YG1, XW1, ZST, HX0, ZT + 25, MAT.asphalt);
+box(H, XW1, HX0, 4800, YG0, ZT, ZT + 25, MAT.asphalt, { cast: false });
+box(H, HX0, BED + 80, HY1 + 900, YE - 50, ZT, ZT + 25, MAT.asphalt, { cast: false });
+box(H, HX1 + 600, BED + 80, HY1 + 20, HY1 + 900, ZT, ZT + 25, MAT.asphalt, { cast: false });
+box(H, BED + 80, XA, -4100, -1850, ZT, ZT + 25, MAT.asphalt, { cast: false });
+box(H, BED + 80, XA, -150, YE - 50, ZT, ZT + 25, MAT.asphalt, { cast: false });
+box(H, PITX, XA, -1850, -150, ZT, ZT + 25, MAT.asphalt, { cast: false });
+box(H, HX1 + 20, 10600, YB0 + 40, -4100, ZT, ZT + 30, MAT.paver, { cast: false });               // dlaždice pod terasou až k západnímu plotu
+box(H, 10600, XA, UY0 - 50, -4100, ZT, ZT + 25, MAT.asphalt, { cast: false });                  // asfalt i před terasou
+// záhon podél jižní stěny s betonovým obrubníkem a rostlinami, mříž pro popínavé rostliny, okapový svod v JV rohu
+[[-4100, -1850], [-150, HY1 + 20]].forEach(([a, b]) => { box(H, HX1 + 20, BED, a, b, ZT, ZT + 60, MAT.grass, { cast: false });
+  box(H, BED, BED + 80, a, b, ZT, ZT + 150, MAT.concreteL); });
+[[-3700, 380], [-2600, 300], [-1950, 260], [300, 420], [1900, 360], [3600, 330]].forEach(([y, r]) => {
+  const s = new THREE.Mesh(new THREE.SphereGeometry(r / 1000, 14, 10), MAT.plant); s.scale.y = .7;
+  s.position.set(X(y), Y(ZT + 60) + r / 1000 * .55, Z(HX1 + 380)); s.castShadow = true; H.add(s); });
+[-3250, -2150].forEach(y => box(H, BED - 90, BED - 60, y - 15, y + 15, ZT, ZT + 2300, MAT.steel));
+box(H, BED - 90, BED - 60, -3265, -2135, ZT + 2270, ZT + 2300, MAT.steel);
+[-3250, -2150].forEach(y => box(H, HX1, BED - 60, y - 12, y + 12, ZT + 2275, ZT + 2300, MAT.steel));
+meshPlane(H, -3235, -2165, ZT + 250, ZT + 2250, MAT.weld, 'y', BED - 75);
+cyl(U, .05, M(ZEAVE - 120 - ZT), MAT.gutter, [X(UY1 - 110), Y((ZEAVE - 120 + ZT) / 2), Z(UX1 + 90)]);
+// východní hranice: pletivo na sloupcích (foto)
+for (let x = XW1 + 100; x <= GX1 + 500; x += 2500) postR(H, x, YE, ZT, 1550, .025, MAT.tubeG, false);
+meshPlane(H, XW1, GX1 + 500, ZT + 50, ZT + 1500, MAT.chain, 'x', YE);
+// západní hranice: hnědý prkenný plot od boční brány dozadu, šedé ocelové sloupky
+boards(H, 'x', XW1 + 400, 17000, YB0 - 60, ZT, 1700, MAT.boardsB);
+for (let x = XW1 + 500; x <= 17000; x += 2500) postR(H, x, YB0 - 30, ZT, 1800, .035, MAT.tubeG, false);
+// pás za boční branou: travnatý svah z úrovně chodníku na terén, dlážděná plocha a zelená dřevěná kůlna vzadu (panorama)
+ramp(YB0, YB1, XW1, ZST, XW1 + 1500, ZT + 5, MAT.grass);
+box(H, 11300, 13500, -10400, -7400, ZT, ZT + 40, MAT.concreteL, { cast: false });
+box(H, 13500, 16500, -10350, -7350, ZT, ZT + 2250, MAT.shed);
+box(H, 13300, 16700, -10550, -7150, ZT + 2250, ZT + 2350, MAT.groof);
+box(H, 13485, 13500, -9500, -8200, ZT + 50, ZT + 1950, MAT.dark);
+box(H, 13470, 13485, -8865, -8835, ZT + 50, ZT + 1950, MAT.post);
+// garáž: omítnutá, sedlová střecha, zelená vrata k domu, okapový svod (foto)
+box(H, GX0, GX1, GY0, GY1, ZT, ZT + 2500, MAT.garage);
+box(H, GX0 - 30, GX0, (GY0 + GY1) / 2 - 1250, (GY0 + GY1) / 2 + 1250, ZT, ZT + 2200, MAT.gdoor);
+box(H, GX0 - 45, GX0 - 30, (GY0 + GY1) / 2 - 15, (GY0 + GY1) / 2 + 15, ZT, ZT + 2200, MAT.dark);
+cyl(H, .045, M(2400), MAT.gutter, [X(GY1 + 60), Y(ZT + 1200), Z(GX0 + 60)]);
+(() => { const yc = (GY0 + GY1) / 2, zr = ZT + 3450, ov = 300, k = (zr - (ZT + 2500)) / ((GY1 - GY0) / 2);
+  const ze = ZT + 2500 - ov * k;
+  const gab = x => [V(GY0, x, ZT + 2500), V(GY1, x, ZT + 2500), V(yc, x, zr - 120)];
+  [GX0, GX1].forEach(x => slab(H, gab(x), new THREE.Vector3(0, 0, x === GX0 ? -1 : 1), .3, MAT.garage));
+  [-1, 1].forEach(sg => { const ye = sg < 0 ? GY0 - ov : GY1 + ov;
+    const pts = [V(ye, GX0 - ov, ze), V(yc, GX0 - ov, zr), V(yc, GX1 + ov, zr), V(ye, GX1 + ov, ze)];
+    slab(H, pts, new THREE.Vector3(sg * (zr - ze), (GY1 - GY0) / 2 + ov, 0).normalize(), .15, MAT.groof); }); })();
+// fasáda do ulice: okrové šambrány oken a vstupu, parapety, okapový svod v severozápadním rohu (panorama)
+const sur = (a0, a1, z0, z1, w = 200) => { box(U, UX0 - 20, UX0, a0 - w, a0, z0, z1 + w, MAT.surround); box(U, UX0 - 20, UX0, a1, a1 + w, z0, z1 + w, MAT.surround);
+  box(U, UX0 - 20, UX0, a0, a1, z1, z1 + w, MAT.surround); };
+[[700, 2660], [-6170, -4210]].forEach(([a, b]) => { sur(a, b, 940, 2400); box(U, UX0 - 70, UX0, a - 60, b + 60, 940, 1000, MAT.concreteL); });
+sur(-1480, -465, -720, 3500);
+cyl(U, .05, M(ZEAVE - 120 - ZT), MAT.gutter, [X(UY0 + 110), Y((ZEAVE - 120 + ZT) / 2), Z(UX0 - 90)]);
+// jižní fasáda (foto ze dvora): okrové šambrány, pás kolem tří malých oken, šambrána balkonových dveří vikýře, svod v JZ rohu
+const surS = (a0, a1, z0, z1, w = 200) => { box(U, UX1, UX1 + 20, a0 - w, a0, z0, z1 + w, MAT.surround); box(U, UX1, UX1 + 20, a1, a1 + w, z0, z1 + w, MAT.surround);
+  box(U, UX1, UX1 + 20, a0, a1, z1, z1 + w, MAT.surround); };
+surS(700, 2660, 940, 2400); box(U, UX1, UX1 + 70, 640, 2720, 940, 1000, MAT.concreteL);
+surS(-5300, -4190, 940, 2400); box(U, UX1, UX1 + 70, -5360, -4130, 940, 1000, MAT.concreteL);
+surS(-2950, -850, Z2, 5330);
+box(U, UX1, UX1 + 20, -3356, -620, 2400, 2580, MAT.surround); box(U, UX1, UX1 + 20, -3356, -620, 1540, 1720, MAT.surround);
+[[-3356, -3156], [-2596, -2395], [-1835, -1380], [-820, -620]].forEach(([a, b]) => box(U, UX1, UX1 + 20, a, b, 1720, 2400, MAT.surround));
+cyl(U, .05, M(ZEAVE - 120 - ZT), MAT.gutter, [X(UY0 + 110), Y((ZEAVE - 120 + ZT) / 2), Z(UX1 + 90)]);
+label('ulice', X(-1500), Y(ZST) + .2, Z(XK - 2500), ['stav', 'konv', 'nh3'], '', ['dum']);
+label('plot na nízké opěrné zdi', X(-3500), Y(ZWALL + 1150) + .15, Z(Xc), ['stav', 'konv', 'nh3'], '', ['dum']);
+label('vjezdová brána', X((YG0 + YG1) / 2), Y(ZST + 1540) + .2, Z(Xc), ['stav', 'konv', 'nh3'], '', ['dum']);
+label('boční brána', X((YB0 + YB1) / 2), Y(ZST + 1540) + .2, Z(Xc), ['stav', 'konv', 'nh3'], '', ['dum']);
+label('asfaltový vjezd a dvůr', X(6800), Y(ZT) + .25, Z(5500), ['stav', 'konv', 'nh3'], '', ['dum']);
+label('garáž', X((GY0 + GY1) / 2), Y(ZT + 3450) + .25, Z((GX0 + GX1) / 2), ['stav', 'konv', 'nh3'], '', ['dum']);
 // ---- popisky domu (pohledy Dům, Řez, Suterén)
 const HV = ['stav', 'konv', 'nh3'];
 label('kotelna 1.PP – improvizovaný úkryt', X(KY + WE) + .05, Y(ZT) + .55, Z(-WN) - .05, HV, 'k', ['dum']);
@@ -503,7 +699,7 @@ cyl(S, .065, .3, MAT.pipe, [X(-280), Y(ZF + 1050), Z(KX - 150)], [Math.PI / 2, 0
 box(S, 1600, 2800, 2400, 2460, ZC - 60, ZC - 25, MAT.white);                                        // zářivka
 label('dveře D1 – prkenné 800 × 1700', X((DOOR[0] + DOOR[1]) / 2), Y(ZF + DOOR_H) + .12, Z(KX), ['stav']);
 label('výklenek: sopouch, 2 otvory ve zdivu', X(-180), Y(ZF + 1800), Z(3850), ['stav']);
-label('lomové kamenné zdivo 520 mm', X(KY) - .3, Y(ZF + 600), Z(800), ['stav']);
+label('lomové kamenné zdivo 520 mm', X(KY) - .3, Y(ZF + 1150), Z(2300), ['stav']);
 label('podlaha 1,18 m pod terénem', X(1000), Y(ZF) + .05, Z(2500), ['stav']);
 
 /* ------------------------------------------------------------------ návrh – konvenční zbraně */
@@ -613,7 +809,8 @@ box(N, KX - 12, KX - 4, DOOR[0] - 100, DOOR[1] + 100, ZF, ZF + DOOR_H + 100, CUT
 box(N, KX - 16, KX - 2, DOOR[0] - 100, DOOR[1] + 100, ZF + DOOR_H + 40, ZF + DOOR_H + 100, CUTMAT.tape);
 cyl(N, .06, M(DOOR[1] - DOOR[0] + 150), MAT.towel, [X((DOOR[0] + DOOR[1]) / 2), .06, Z(KX - 70)], [0, 0, Math.PI / 2]);
 label('dveře: fólie, páska, mokrá textilie u prahu', X((DOOR[0] + DOOR[1]) / 2), Y(ZF + DOOR_H) + .18, Z(KX - 150), ['nh3'], 'c');
-// sopouch ucpaný, uzávěry prostupů
+// sopouch ucpaný, uzávěry prostupů (i prostup vodovodní přípojky severní zdí)
+box(N, 0, 8, WP - 70, WP + 70, WZ0 - 70, WZ0 + 70, MAT.tape);
 box(N, KX - 40, KX - 2, -340, -220, ZF + 990, ZF + 1110, MAT.dark);
 box(N, KX - 10, KX - 4, -370, -110, ZF + 920, ZF + 1180, MAT.foil, { cast: false });
 [3735, 3960].forEach(x => box(N, x - 60, x + 60, -VYK_D, -VYK_D + 8, ZF + 1680, ZF + 1790, MAT.tape));
@@ -659,8 +856,8 @@ label('terén −0,980', X(KY + WE + 1500), Y(ZT) + .08, Z(-WN - 1500), ['stav',
 /* ------------------------------------------------------------------ světla */
 scene.add(new THREE.HemisphereLight(0xf4f1ea, 0x6b6153, .75));
 const sun = new THREE.DirectionalLight(0xffffff, .85); sun.position.set(-9.6, 16, 12.8); sun.castShadow = true;
-sun.target.position.set(-1.6, 0, 3.8); scene.add(sun.target);
-sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15, near: 1, far: 60 }); sun.shadow.bias = -.0006;
+sun.target.position.set(-0.5, 0, 7.5); scene.add(sun.target);
+sun.shadow.mapSize.set(3072, 3072); Object.assign(sun.shadow.camera, { left: -19, right: 19, top: 19, bottom: -19, near: 1, far: 70 }); sun.shadow.bias = -.0006;
 scene.add(sun);
 const roomLight = new THREE.PointLight(0xfff1d6, .55, 7, 1.6); roomLight.position.set(2.0, 1.6, 2.1); scene.add(roomLight);
 
