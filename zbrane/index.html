@@ -62,7 +62,7 @@ header.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
 .views button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-ink); }
 .toggles { position: absolute; right: 10px; top: 10px; display: flex; gap: 6px; }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
-.hint { position: absolute; right: 10px; bottom: 12px; font-size: 11.5px; color: var(--muted); }
+.hint { position: absolute; left: 12px; top: 14px; font-size: 11.5px; color: var(--muted); }
 aside.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; overflow: auto; min-width: 0; }
 aside h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent-ink); margin: 0 0 6px; }
 aside .lead { margin: 0 0 12px; color: var(--muted); line-height: 1.45; }
@@ -94,7 +94,7 @@ dl.nums dt { color: var(--muted); } dl.nums dd { margin: 0; font-family: var(--f
       <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 22 20H2Z" fill="#1f4e9c"/></svg></div>
       <div>
         <h1>Improvizovaný úkryt proti konvenčním zbraním</h1>
-        <p>Kotelna 1.PP, RD Soběslav III · stávající stav a návrh · Bc. Karel Bezpalec</p>
+        <p>RD Soběslav III · 3D model domu a úkrytu · Bc. Karel Bezpalec</p>
       </div>
     </div>
     <div class="seg" role="group" aria-label="Varianta">
@@ -105,14 +105,17 @@ dl.nums dt { color: var(--muted); } dl.nums dd { margin: 0; font-family: var(--f
   </header>
   <div class="work">
     <div class="stage">
-      <canvas id="c" aria-label="3D model kotelny – tažením otáčet, kolečkem nebo sevřením přibližovat"></canvas>
+      <canvas id="c" aria-label="3D model domu a kotelny – tažením otáčet, kolečkem nebo sevřením přibližovat"></canvas>
       <div id="labels"></div>
       <div class="toggles">
         <button class="chip" id="t-lbl" aria-pressed="true">Popisky</button>
         <button class="chip" id="t-cut" aria-pressed="true">Řez stěnami</button>
       </div>
       <div class="views" role="group" aria-label="Pohled">
-        <button id="p-celek" data-p="celek" aria-pressed="true">Celek</button>
+        <button id="p-dum" data-p="dum" aria-pressed="true">Dům</button>
+        <button id="p-rez" data-p="rez" aria-pressed="false">Řez</button>
+        <button id="p-suteren" data-p="suteren" aria-pressed="false">Suterén</button>
+        <button id="p-celek" data-p="celek" aria-pressed="false">Kotelna</button>
         <button id="p-zvenku" data-p="zvenku" aria-pressed="false">Zvenku</button>
         <button id="p-interier" data-p="interier" aria-pressed="false">Interiér</button>
         <button id="p-vstup" data-p="vstup" aria-pressed="false">Vstup z dílny</button>
@@ -192,6 +195,14 @@ const TEX = {
   plank: canvasTex(256, 256, (g, w, h) => { const r = rng(23); for (let i = 0; i < 6; i++) { const c = r() * 20;
       g.fillStyle = `rgb(${52 + c},${46 + c},${40 + c})`; g.fillRect(i * w / 6, 0, w / 6 - 3, h); } noise(g, w, h, .15, r, 3000); }, 1.0),
   geo: canvasTex(128, 128, (g, w, h) => { const r = rng(29); g.fillStyle = '#eceae4'; g.fillRect(0, 0, w, h); noise(g, w, h, .08, r, 1500); }, 1.0),
+  render: canvasTex(256, 256, (g, w, h) => { const r = rng(31); g.fillStyle = '#d6c4a0'; g.fillRect(0, 0, w, h); noise(g, w, h, .08, r, 7000); }, 1.2),
+  plinth: canvasTex(256, 256, (g, w, h) => { const r = rng(33); g.fillStyle = '#6d6c68'; g.fillRect(0, 0, w, h); noise(g, w, h, .4, r, 16000); }, 0.8),
+  tiles: canvasTex(256, 256, (g, w, h) => { const r = rng(35); g.fillStyle = '#4a2c22'; g.fillRect(0, 0, w, h);
+    const R = 4, Cc = 8; for (let j = 0; j < R; j++) for (let i = 0; i <= Cc; i++) { const x = i * w / Cc - (j % 2 ? w / Cc / 2 : 0), y = j * h / R, c = r() * 22;
+      g.fillStyle = `rgb(${118 + c},${66 + c * .6},${50 + c * .4})`; g.beginPath(); g.moveTo(x + 2, y + 2); g.lineTo(x + w / Cc - 2, y + 2);
+      g.lineTo(x + w / Cc - 3, y + h / R - 6); g.quadraticCurveTo(x + w / Cc / 2, y + h / R + 2, x + 3, y + h / R - 6); g.closePath(); g.fill(); }
+    noise(g, w, h, .12, r, 4000); }, 1.3),
+  grass: canvasTex(256, 256, (g, w, h) => { const r = rng(37); g.fillStyle = '#7f9a5c'; g.fillRect(0, 0, w, h); noise(g, w, h, .25, r, 14000); }, 2.0),
 };
 const mat = (opt) => new THREE.MeshStandardMaterial(Object.assign({ roughness: .92, metalness: 0 }, opt));
 const MAT = {
@@ -211,11 +222,15 @@ const MAT = {
   dark: mat({ color: 0x2b2f33 }), mask: mat({ color: 0x323a2e }), chair: mat({ color: 0x5b4632 }), table: mat({ color: 0x9b7a55 }),
   infill: mat({ color: 0xc94f3a, map: TEX.brick }), cloud: new THREE.MeshStandardMaterial({ color: 0xdff2c8, transparent: true, opacity: .22, depthWrite: false, roughness: 1 }),
   tub: mat({ color: 0x3b7bd1, roughness: .5 }), white: mat({ color: 0xf2f2ee }), yellow: mat({ color: 0xf2c200 }),
+  render: mat({ map: TEX.render }), plinth: mat({ map: TEX.plinth, roughness: 1 }), roof: mat({ map: TEX.tiles, roughness: .85 }),
+  ridge: mat({ color: 0x5a3328, roughness: .85 }), grass: mat({ map: TEX.grass, roughness: 1 }), gutter: mat({ color: 0x7f898b, metalness: .4, roughness: .5 }),
+  frameW: mat({ color: 0xeeede8, roughness: .5 }), doorW: mat({ color: 0x5b3a26, roughness: .7 }), concreteL: mat({ color: 0xbbb8b0 }),
+  glassBlock: new THREE.MeshPhysicalMaterial({ color: 0xdfeef2, transparent: true, opacity: .6, roughness: .4 }),
 };
 // materiály stěn bližších ke kameře (jižní a západní) se při pohledu „Celek“ seříznou
 const CUT = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1.05);
 const CUTMAT = {};
-['stone', 'brick', 'plaster', 'oldDoor', 'newDoor', 'infill', 'foil', 'tape', 'frame', 'glass', 'red'].forEach(k => { CUTMAT[k] = MAT[k].clone(); });
+['stone', 'brick', 'plaster', 'oldDoor', 'newDoor', 'infill', 'foil', 'tape', 'frame', 'glass', 'red', 'plinth'].forEach(k => { CUTMAT[k] = MAT[k].clone(); CUTMAT[k].clipShadows = true; });
 
 /* ------------------------------------------------------------------ pomocné funkce geometrie */
 function boxUV(geo, w, h, d, s) {         // UV v měřítku světa, aby textura nebyla roztažená
@@ -266,21 +281,19 @@ function bagPile(parent, side, a0, a1, h0, h1, depth) {
     if (side === 'N') bag(parent, t, yy, M(-WN) - dd, 0); else bag(parent, M(KY + WE) + dd, yy, t, Math.PI / 2);
   }
 }
-const labels = []; // {pos: Vector3, text, cls, groups: [variant..]}
-function label(text, x, y, z, vars, cls = '') { labels.push({ p: new THREE.Vector3(x, y, z), text, cls, vars }); }
+const labels = []; // {p: Vector3, text, cls, vars: [varianty], views: [pohledy]}
+const KV = ['celek', 'zvenku', 'interier', 'vstup'];
+function label(text, x, y, z, vars, cls = '', views = KV) { labels.push({ p: new THREE.Vector3(x, y, z), text, cls, vars, views }); }
 
 /* ------------------------------------------------------------------ společné části scény */
-const G = { common: new THREE.Group(), stav: new THREE.Group(), konv: new THREE.Group(), nh3: new THREE.Group(), plaster: new THREE.Group(), raw: new THREE.Group() };
+const G = { common: new THREE.Group(), stav: new THREE.Group(), konv: new THREE.Group(), nh3: new THREE.Group(), plaster: new THREE.Group(), raw: new THREE.Group(),
+            house: new THREE.Group(), upper: new THREE.Group() };
 Object.values(G).forEach(g => scene.add(g));
 const C = G.common;
 // podlaha kotelny + podlaha dílny (část)
 box(C, 0, KX, 0, KY, ZF - 150, ZF, MAT.floor, { cast: false });
-box(C, KX + WS, KX + WS + 3000, -WW, 3300, ZF - 150, ZF, MAT.floor, { cast: false });
+box(C, KX + WS, KX + WS + 3000, -WW, KY, ZF - 150, ZF, MAT.floor, { cast: false });
 box(C, 3330, KX, -WW, -VYK_D, ZF - 150, ZF, MAT.floor, { cast: false });
-// terén a zemina na severní a východní straně (vně)
-const soilN = box(C, -WN - 3200, -WN, -WW - 1200, KY + WE + 3200, ZF - 150, ZT, MAT.soil, { cast: false });
-const soilE = box(C, -WN, KX + WS + 2600, KY + WE, KY + WE + 3200, ZF - 150, ZT, MAT.soil, { cast: false });
-box(C, -WN - 900, -WN, -WW - 1200, KY + WE + 900, ZT, ZT + 4, MAT.geo, { cast: false });   // geotextilie podél domu (foto P5)
 // stěny: surové zdivo (stav) / omítnuté (návrhy) – geometrie dvakrát, přepíná se viditelnost
 function buildWalls(parent, plastered) {
   const st = plastered ? MAT.plaster : MAT.stone, br = plastered ? MAT.plaster : MAT.brick;
@@ -320,6 +333,166 @@ label('O3', X(KY + WE / 2), Y(ZW) + .12, Z((O3[0] + O3[1]) / 2), ['stav', 'konv'
 // zásuvka 230 V na pilíři vedle výklenku (u žárovkového svítidla)
 box(C, 3180, 3280, 0, 25, ZF + 1500, ZF + 1600, MAT.dark);
 
+/* ------------------------------------------------------------------ celý dům (PD: půdorysy 1.PP a 1.NP, řez, pohledy; fotografie)
+   1.PP: vnější líc x −520…8120, y −7850…4600; 1.NP: vnější líc x −620…8220, y −7950…4700 (o 100 mm přesahuje sokl) */
+const HX0 = -520, HX1 = 8120, HY0 = -7850, HY1 = 4600;
+const UX0 = -620, UX1 = 8220, UY0 = -7950, UY1 = 4700;
+const Z2 = 3130, ZWT = 4046, ZEAVE = 3970, ZRIDGE = 7870, XR = 3800, YC = -1900, ZCE = 5760, ZCR = 7760;
+const KR = (ZRIDGE - ZEAVE) / (XR - (UX0 - 500));                   // sklon střechy ≈ 38°
+const zRoofS = x => ZEAVE + (UX1 + 500 - x) * KR;                      // výška horní plochy jižní střešní roviny
+const V = (y, x, z) => new THREE.Vector3(X(y), Y(z), Z(x));            // bod ve výkresových souřadnicích → 3D
+const H = G.house, U = G.upper;
+// deska z rovinného mnohoúhelníku (horní/vnější plocha = pts, tloušťka t směrem proti normále n)
+function slab(parent, pts, n, t, material, holes = [], cast = true) {
+  const p0 = pts[0], e1 = pts[1].clone().sub(p0).normalize(), nn = n.clone().normalize();
+  const e2 = new THREE.Vector3().crossVectors(nn, e1).normalize();
+  const to2 = p => { const d = p.clone().sub(p0); return new THREE.Vector2(d.dot(e1), d.dot(e2)); };
+  const sh = new THREE.Shape(pts.map(to2)); holes.forEach(hp => sh.holes.push(new THREE.Path(hp.map(to2))));
+  const g = new THREE.ExtrudeGeometry(sh, { depth: t, bevelEnabled: false });
+  const s = (material.map && material.map.userData.size) || 1, uv = g.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / s, uv.getY(i) / s);
+  g.applyMatrix4(new THREE.Matrix4().makeBasis(e1, e2, nn).setPosition(p0.clone().addScaledVector(nn, -t)));
+  const m = new THREE.Mesh(g, material); m.castShadow = cast; m.receiveShadow = true; parent.add(m); return m;
+}
+const rectH = (f, a0, a1, z0, z1) => [f(a0, z0), f(a1, z0), f(a1, z1), f(a0, z1)];
+// okno v obvodové stěně: rám + tenké sklo (osa a = y pro sever/jih, x pro východ/západ)
+function win(parent, side, a0, a1, z0, z1, fm = MAT.frameW, gm = MAT.glass) {
+  const T = { N: [UX0 + 90, UX0 + 150], S: [UX1 - 150, UX1 - 90], E: [UY1 - 150, UY1 - 90], W: [UY0 + 90, UY0 + 150],
+              bN: [HX0 + 60, HX0 + 120], bS: [HX1 - 120, HX1 - 60] }[side];
+  const alongY = !(side === 'E' || side === 'W');
+  const bx = (a, c, zz0, zz1, m, t0, t1) => alongY ? box(parent, t0, t1, a, c, zz0, zz1, m) : box(parent, a, c, t0, t1, zz0, zz1, m);
+  bx(a0, a1, z0, z1, gm, T[0] + 25, T[0] + 35);
+  const w = 50, f = (a, c, zz0, zz1) => bx(a, c, zz0, zz1, fm, T[0] - 10, T[1] + 10);
+  f(a0, a0 + w, z0, z1); f(a1 - w, a1, z0, z1); f(a0, a1, z0, z0 + w); f(a0, a1, z1 - w, z1);
+  if (a1 - a0 > 1300) f((a0 + a1) / 2 - w / 2, (a0 + a1) / 2 + w / 2, z0, z1);
+}
+// ---- terén: blok zeminy s otvorem pro dům a pro schodiště do suterénu (horní plocha tráva)
+const TX0 = -6500, TX1 = 15500, TY0 = -15000, TY1 = 11000, PITX = 10270;
+function terrain(x0, x1, y0, y1) {
+  const w = M(y1 - y0), h = M(ZT - (ZF - 400)), d = M(x1 - x0);
+  const g = boxUV(new THREE.BoxGeometry(w, h, d), w, h, d, 2.0);
+  const m = new THREE.Mesh(g, [MAT.soil, MAT.soil, MAT.grass, MAT.soil, MAT.soil, MAT.soil]);
+  m.position.set(X((y0 + y1) / 2), Y((ZT + ZF - 400) / 2), Z((x0 + x1) / 2)); m.receiveShadow = true; H.add(m);
+}
+terrain(TX0, HX0, TY0, TY1); terrain(HX0, HX1, TY0, HY0); terrain(HX0, HX1, HY1, TY1);
+terrain(HX1, TX1, TY0, -1800); terrain(HX1, TX1, -200, TY1); terrain(PITX, TX1, -1800, -200);
+box(H, HX0 - 900, HX0 - 20, HY0 - 900, HY1 + 900, ZT, ZT + 4, MAT.geo, { cast: false });       // geotextilie (foto)
+box(H, HX0, HX1 + 600, HY1 + 20, HY1 + 900, ZT, ZT + 4, MAT.geo, { cast: false });
+// ---- 1.PP mimo kotelnu: obvodové a vnitřní zdivo, podlaha, okna, dveře, schodiště
+const winS = [[1690, 2490], [300, 1100], [-5760, -4960], [-4470, -3670]], winNs = [[-5840, -5040], [-4550, -3750]];
+const DS = [-1450, -550], DN = [-1480, -465];
+wall(H, 'y', HY0, -WW, HX0, 0, ZF, 0, [...winNs.map(w => [w[0], w[1], ZP, ZW]), [DN[0], DN[1], -720, 0]], CUTMAT.stone);
+wall(H, 'y', HY0, HY1, 7600, HX1, ZF, 0, [...winS.map(w => [w[0], w[1], ZP, ZW]), [DS[0], DS[1], ZF, ZF + 1900]], CUTMAT.stone);
+wall(H, 'x', KX + WS, 7600, KY, HY1, ZF, 0, [], CUTMAT.stone);
+wall(H, 'x', 0, 7600, HY0, -7330, ZF, 0, [], CUTMAT.stone);
+wall(H, 'x', KX + WS, 7600, -340, 0, ZF, ZC, [[5000, 5870, ZF, ZF + 1900]], CUTMAT.brick);       // dílna / chodba
+wall(H, 'x', 0, 3090, -2870, -2500, ZF, ZC, [[2200, 2950, ZF, ZF + 1900]], CUTMAT.brick);        // chodba / sklep
+wall(H, 'x', 3590, 7600, -2840, -2500, ZF, ZC, [[3800, 4600, ZF, ZF + 1900]], CUTMAT.brick);     // chodba / prádelna
+wall(H, 'y', -7330, -2500, 3090, 3590, ZF, ZC, [], CUTMAT.stone);                                // sklep / prádelna
+box(H, 0, 7600, -7330, -500, ZF - 150, ZF, MAT.floor, { cast: false });
+winNs.forEach(w => win(H, 'bN', w[0], w[1], ZP, ZW, CUTMAT.frame, CUTMAT.glass));
+winS.forEach(w => win(H, 'bS', w[0], w[1], ZP, ZW, CUTMAT.frame, CUTMAT.glass));
+box(H, HX1 - 80, HX1 - 40, DS[0], DS[1], ZF, ZF + 1900, CUTMAT.newDoor);                         // dveře do suterénu
+// sokl z hrubé omítky nad terénem (foto) – obklad 20 mm s otvory oken
+const holesN = [[O2[0], O2[1], ZP, ZW], [O1[0], O1[1], ZP, ZW], ...winNs.map(w => [w[0], w[1], ZP, ZW]), [DN[0], DN[1], -720, 0]];
+wall(H, 'y', HY0 - 20, HY1 + 20, HX0 - 20, HX0, ZT, 0, holesN, CUTMAT.plinth);
+wall(H, 'y', HY0 - 20, HY1 + 20, HX1, HX1 + 20, ZT, 0, [...winS.map(w => [w[0], w[1], ZP, ZW]), [DS[0], DS[1], ZT - 10, ZF + 1900]], CUTMAT.plinth);
+wall(H, 'x', HX0, HX1, HY1, HY1 + 20, ZT, 0, [[O3[0], O3[1], ZP, ZW]], CUTMAT.plinth);
+wall(H, 'x', HX0, HX1, HY0 - 20, HY0, ZT, 0, [], CUTMAT.plinth);
+// schodiště: podesta u vstupu −0,720, 4 stupně do 1.NP, rameno do suterénu
+box(H, 0, 400, -2500, -500, ZF, -720, MAT.floor);
+for (let k = 1; k <= 4; k++) box(H, 400 + (k - 1) * 260, 400 + k * 260, -1500, -500, ZF, -720 + k * 180, MAT.floor);
+for (let k = 1; k <= 7; k++) box(H, 400 + (k - 1) * 285, 400 + k * 285, -2500, -1600, ZF, -720 - k * 180, MAT.floor);
+// vnější schodiště do suterénu (jih): opěrné zdi, podesta, 5 stupňů po 205 mm
+box(H, HX1, PITX, -1800, -1650, ZF - 150, ZT + 100, MAT.concreteL); box(H, HX1, PITX, -350, -200, ZF - 150, ZT + 100, MAT.concreteL);
+box(H, PITX - 150, PITX, -1650, -350, ZF - 150, ZT + 100, MAT.concreteL);
+box(H, HX1, HX1 + 500, -1650, -350, ZF - 150, ZF, MAT.concreteL, { cast: false });
+for (let k = 1; k <= 5; k++) box(H, HX1 + 500 + (k - 1) * 300, HX1 + 500 + k * 300, -1650, -350, ZF - 150, ZF + k * 205, MAT.concreteL);
+// ---- 1.NP: podlaha (strop 1.PP), obvodové stěny se štíty, příčky
+[[UX0, UX1, UY0, -2500], [2700, UX1, -2500, -500], [KX + WS, UX1, -500, UY1], [UX0, -525, -500, UY1], [-525, KX + WS, 4605, UY1],
+ [1440, 2700, -1500, -500]].forEach(([a, b, c, d]) => box(U, a, b, c, d, ZC, 0, MAT.floor));
+const pN = (y, z) => V(y, UX0, z), pS = (y, z) => V(y, UX1, z), pE = (x, z) => V(UY1, x, z), pW = (x, z) => V(UY0, x, z);
+slab(U, [pN(UY0, 0), pN(DN[0], 0), pN(DN[0], 1280), pN(DN[1], 1280), pN(DN[1], 0), pN(UY1, 0), pN(UY1, ZWT), pN(UY0, ZWT)],
+     new THREE.Vector3(0, 0, -1), .52, MAT.render,
+     [rectH(pN, 700, 2660, 1000, 2400), rectH(pN, -6170, -4210, 1000, 2400), rectH(pN, -1450, -495, 1400, 3500)]);
+const WS1 = [[700, 2660, 1000, 2400], [-1380, -820, 1720, 2400], [-2395, -1835, 1720, 2400], [-3156, -2596, 1720, 2400],
+             [-5300, -4190, 1000, 2400], [-6230, -5360, 240, 2400], [-2950, -850, 3130, 5330]];
+slab(U, [pS(UY0, 0), pS(UY1, 0), pS(UY1, ZWT), pS(450, ZWT), pS(450, ZCE), pS(YC, ZCR - 300), pS(-4250, ZCE), pS(-4250, ZWT), pS(UY0, ZWT)],
+     new THREE.Vector3(0, 0, 1), .52, MAT.render, WS1.map(([a, b, c, d]) => rectH(pS, a, b, c, d)));
+const gable = (p, n, holes) => slab(U, [p(-100, 0), p(7700, 0), p(7700, ZWT), p(UX1, ZWT), p(XR, ZRIDGE - 320), p(UX0, ZWT), p(-100, ZWT)], n, .52, MAT.render, holes);
+gable(pE, new THREE.Vector3(1, 0, 0), [rectH(pE, 1340, 2450, 1000, 2400), rectH(pE, 2820, 4840, 4000, 5200)]);
+gable(pW, new THREE.Vector3(-1, 0, 0), [rectH(pW, 2820, 4840, 4000, 5200), rectH(pW, 600, 1000, 4300, 4850)]);
+[[700, 2660, 1000, 2400], [-6170, -4210, 1000, 2400]].forEach(w => win(U, 'N', ...w));
+WS1.forEach(w => win(U, 'S', ...w));
+win(U, 'E', 1340, 2450, 1000, 2400); win(U, 'E', 2820, 4840, 4000, 5200); win(U, 'W', 2820, 4840, 4000, 5200); win(U, 'W', 600, 1000, 4300, 4850);
+box(U, UX0 + 100, UX0 + 160, -1450, -495, 1400, 3500, MAT.glassBlock);                            // luxfery nad vstupem
+box(U, UX0 + 200, UX0 + 250, DN[0] + 30, DN[1] - 30, -720, 1250, MAT.doorW);                      // vstupní dveře
+box(H, -1500, HX0 - 20, -1700, -250, ZT, -830, MAT.concreteL);                                    // stupeň před vstupem
+const PL = MAT.plaster;
+wall(U, 'y', -170, 4180, 4200, 4540, 0, 2680, [[2770, 3400, 0, 2000]], PL);
+wall(U, 'x', -100, 4540, -500, -170, 0, 2680, [[2200, 3000, 0, 2000]], PL);
+wall(U, 'x', 4540, 7700, -170, 80, 0, 2680, [], PL);
+wall(U, 'y', -3890, -170, 5400, 5560, 0, 2680, [[-1500, -900, 0, 2000], [-2900, -2300, 0, 2000]], PL);
+wall(U, 'x', 5560, 7700, -1734, -1670, 0, 2680, [], PL);
+wall(U, 'x', 5400, 7700, -4070, -3890, 0, 2680, [], PL);
+wall(U, 'x', -100, 5400, -2840, -2510, 0, 2680, [[2000, 2800, 0, 2000], [3700, 4500, 0, 2000]], PL);
+wall(U, 'y', -7430, -2840, 3260, 3600, 0, 2680, [], PL);
+for (let k = 1; k <= 18; k++) box(U, 4300 - k * 245, 4300 - (k - 1) * 245, -2500, -1600, k * 174 - 250, k * 174, MAT.floor);   // schodiště do podkroví
+// ---- podkroví (2.NP): strop 1.NP, nadezdívky pokoje, strop podkroví
+[[-100, 7700, -7430, -2500], [-100, 7700, -1600, 4180], [4300, 7700, -2500, -1600]].forEach(([a, b, c, d]) => box(U, a, b, c, d, 2680, Z2, MAT.floor));
+wall(U, 'y', -7430, 4180, 1520, 1640, Z2, 5550, [], PL);
+wall(U, 'y', -7430, 4180, 5730, 5850, Z2, 5550, [[-3800, 0, Z2, 5550]], PL);
+box(U, 1520, 5850, -7430, 4180, 5550, 5820, MAT.plaster);
+box(U, 6462, 7700, -4250, -3950, ZWT, ZCE, MAT.render); box(U, 6462, 7700, 150, 450, ZWT, ZCE, MAT.render);   // boky vikýře
+// ---- střecha 38°: severní rovina, jižní rovina s výřezem pro vikýř, střecha vikýře, hřeben, okapy, komíny
+const nN = new THREE.Vector3(0, Math.cos(Math.atan(KR)), -Math.sin(Math.atan(KR)));
+const nSo = new THREE.Vector3(0, Math.cos(Math.atan(KR)), Math.sin(Math.atan(KR)));
+const ye0 = UY0 - 300, ye1 = UY1 + 300, xe = UX1 + 500;
+slab(U, [V(ye0, UX0 - 500, ZEAVE), V(ye1, UX0 - 500, ZEAVE), V(ye1, XR, ZRIDGE), V(ye0, XR, ZRIDGE)], nN, .22, MAT.roof);
+const xv = xe - (ZCE - ZEAVE) / KR, xr = xe - (ZCR - ZEAVE) / KR;
+slab(U, [V(ye0, xe, ZEAVE), V(YC - 2350, xe, ZEAVE), V(YC - 2350, xv, ZCE), V(YC, xr, ZCR), V(YC + 2350, xv, ZCE), V(YC + 2350, xe, ZEAVE),
+         V(ye1, xe, ZEAVE), V(ye1, XR, ZRIDGE), V(ye0, XR, ZRIDGE)], nSo, .22, MAT.roof);
+[-1, 1].forEach(sg => { const ye = YC + sg * 2650;
+  const pts = [V(ye, UX1 + 300, ZCE), V(YC, UX1 + 300, ZCR), V(YC, xr, ZCR), V(ye, xv, ZCE)];
+  const nn = new THREE.Vector3(sg * 2000, 2650, 0).normalize();      // normála ven a nahoru
+  slab(U, sg > 0 ? pts : pts.slice().reverse(), nn, .22, MAT.roof); });
+box(U, XR - 110, XR + 110, ye0, ye1, ZRIDGE - 120, ZRIDGE + 50, MAT.ridge);
+box(U, xr, UX1 + 300, YC - 90, YC + 90, ZCR - 100, ZCR + 40, MAT.ridge);
+cyl(U, .065, M(ye1 - ye0), MAT.gutter, [X((ye0 + ye1) / 2), Y(ZEAVE) - .08, Z(UX0 - 560)], [0, 0, Math.PI / 2]);
+[[ye0, YC - 2650], [YC + 2650, ye1]].forEach(([a, b]) => cyl(U, .065, M(b - a), MAT.gutter, [X((a + b) / 2), Y(ZEAVE) - .08, Z(xe + 60)], [0, 0, Math.PI / 2]));
+[[-6650, -6050], [2260, 2860]].forEach(([a, b]) => slab(U, [V(a, 7000, zRoofS(7000) + 40), V(b, 7000, zRoofS(7000) + 40), V(b, 6100, zRoofS(6100) + 40), V(a, 6100, zRoofS(6100) + 40)], nSo, .06, MAT.dark, [], false));
+[[3375, 3825, -475, -25], [4875, 5325, -3125, -2675]].forEach(([a, b, c, d]) => { box(U, a, b, c, d, Z2, 8520, MAT.render); box(U, a - 40, b + 40, c - 40, d + 40, 8520, 8580, MAT.dark); });
+// ---- terasa u kuchyně, schodiště do zahrady, balkon 2.NP
+box(H, UX1, 9820, -7440, -4070, ZT, 240, MAT.concreteL);
+for (let k = 0; k < 7; k++) box(H, UX1 + k * 230, UX1 + (k + 1) * 230, -4070, -3310, ZT, 240 - (k + 1) * 174, MAT.concreteL);
+function railing(parent, pts, z0, h = 1000) {
+  for (let i = 0; i < pts.length - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1]; const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / 1100));
+    for (let k = 0; k <= n; k++) { const x = x0 + (x1 - x0) * k / n, y = y0 + (y1 - y0) * k / n; box(parent, x - 20, x + 20, y - 20, y + 20, z0, z0 + h, MAT.steel); }
+    box(parent, Math.min(x0, x1) - 25, Math.max(x0, x1) + 25, Math.min(y0, y1) - 25, Math.max(y0, y1) + 25, z0 + h - 40, z0 + h, MAT.steel);
+    box(parent, Math.min(x0, x1) - 10, Math.max(x0, x1) + 10, Math.min(y0, y1) - 10, Math.max(y0, y1) + 10, z0 + 450, z0 + 480, MAT.steel); } }
+railing(H, [[UX1 + 40, -7400], [9780, -7400], [9780, -4110]], 240);
+box(U, UX1, 9300, -3640, -150, Z2 - 130, Z2, MAT.concreteL);
+railing(U, [[UX1 + 40, -3600], [9260, -3600], [9260, -190], [UX1 + 40, -190]], Z2);
+// ---- popisky domu (pohledy Dům, Řez, Suterén)
+const HV = ['stav', 'konv', 'nh3'];
+label('kotelna 1.PP – improvizovaný úkryt', X(KY + WE) + .05, Y(ZT) + .55, Z(-WN) - .05, HV, 'k', ['dum']);
+label('vstup do domu', X(-970), Y(1500), Z(UX0) - .1, HV, '', ['dum']);
+label('terasa', X(-5750), Y(240) + .35, Z(9020), HV, '', ['dum']);
+label('balkon 2.NP', X(-1900), Y(Z2) + 1.2, Z(9250), HV, '', ['dum']);
+label('vstup do suterénu', X(-1000), Y(ZT) + .25, Z(9300), HV, '', ['dum', 'suteren']);
+label('kotelna – úkryt', X(2040), Y(ZF) + .35, Z(2115), HV, 'k', ['suteren']);
+label('dílna', X(2040), Y(ZF) + .35, Z(6100), HV, '', ['suteren']);
+label('chodba a schodiště', X(-1500), Y(ZF) + .35, Z(5300), HV, '', ['suteren']);
+label('sklep', X(-5100), Y(ZF) + .35, Z(1545), HV, '', ['suteren']);
+label('prádelna', X(-5085), Y(ZF) + .35, Z(5595), HV, '', ['suteren']);
+label('1.PP – kotelna (úkryt), podlaha −2,160', X(2000), Y(ZF) + 1.25, Z(2115), HV, 'k', ['rez']);
+label('1.NP – pokoj, ±0,000', X(2000), Y(0) + 1.6, Z(2050), HV, '', ['rez']);
+label('2.NP – podkroví, +3,130', X(2000), Y(Z2) + 1.5, Z(3700), HV, '', ['rez']);
+label('hřeben +7,870', X(2000), Y(ZRIDGE) + .25, Z(XR), HV, '', ['rez']);
+label('terén −0,980', X(2000), Y(ZT) + .1, Z(-2200), HV, '', ['rez']);
+label('dílna', X(2000), Y(ZF) + 1.25, Z(6100), HV, '', ['rez']);
+
+
 /* ------------------------------------------------------------------ stávající stav */
 const S = G.stav;
 const od = box(S, KX + 5, KX + 45, DOOR[0], DOOR[1], ZF, ZF + DOOR_H, CUTMAT.oldDoor);              // prkenné dveře (zavřené)
@@ -347,7 +520,7 @@ function niceBags(parent, side, a0, a1) {
 niceBags(K, 'E', O3[0], O3[1]); box(K, O3[0] - 60, O3[1] + 60, KY - 28, KY - 6, ZP - 60, ZW + 60, MAT.osb);
 [O2, O1].forEach(o => bagPile(K, 'N', M(o[0] - 300), M(o[1] + 300), Y(ZT), Y(ZW + 300), M(BAR)));
 bagPile(K, 'E', M(O3[0] - 300), M(O3[1] + 300), Y(ZT), Y(ZW + 300), M(BAR));
-label('násyp z pytlů s pískem 600 mm', X((O1[0] + O1[1]) / 2), Y(ZW + 300) + .2, Z(-WN - 300), ['konv'], 'k');
+label('násyp z pytlů s pískem 600 mm', X((O1[0] + O1[1]) / 2), Y(ZW + 300) + .2, Z(-WN - 300), ['konv'], 'k', [...KV, 'dum']);
 label('deska OSB 22 mm + pytle v nice', X((O2[0] + O2[1]) / 2), Y(ZW) + .25, Z(40), ['konv'], 'k');
 // VZT-P: komínek DN 100 oknem O3, ventilátor VE; VZT-O: sopouch
 cyl(K, .055, Y(ZP) - .5, MAT.vzt, [X(KY - 120), (.5 + Y(ZP)) / 2, Z(3140)]);
@@ -480,13 +653,14 @@ const PUFF = (() => { const c = document.createElement('canvas'); c.width = c.he
 const arrowM = mat({ color: 0x1f4e9c });
 [[0.4, -1.9], [3.6, -2.1]].forEach(([x, z]) => { cyl(cloud, .035, 1.4, arrowM, [x, Y(ZT) + 1.4, z]);
   const c = new THREE.Mesh(new THREE.ConeGeometry(.12, .3, 18), arrowM); c.position.set(x, Y(ZT) + 2.25, z); cloud.add(c); });
-label('NH₃ – plyn lehčí než vzduch (hutnota 0,6) stoupá', 2.0, Y(ZT) + 3.1, -2.0, ['nh3'], 'c');
+label('NH₃ – plyn lehčí než vzduch (hutnota 0,6) stoupá', 2.0, Y(ZT) + 3.1, -2.0, ['nh3'], 'c', [...KV, 'dum']);
 label('terén −0,980', X(KY + WE + 1500), Y(ZT) + .08, Z(-WN - 1500), ['stav', 'konv', 'nh3']);
 
 /* ------------------------------------------------------------------ světla */
 scene.add(new THREE.HemisphereLight(0xf4f1ea, 0x6b6153, .75));
-const sun = new THREE.DirectionalLight(0xffffff, .85); sun.position.set(-6, 12, 9); sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 40 }); sun.shadow.bias = -.0006;
+const sun = new THREE.DirectionalLight(0xffffff, .85); sun.position.set(-9.6, 16, 12.8); sun.castShadow = true;
+sun.target.position.set(-1.6, 0, 3.8); scene.add(sun.target);
+sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15, near: 1, far: 60 }); sun.shadow.bias = -.0006;
 scene.add(sun);
 const roomLight = new THREE.PointLight(0xfff1d6, .55, 7, 1.6); roomLight.position.set(2.0, 1.6, 2.1); scene.add(roomLight);
 
@@ -498,16 +672,23 @@ function applyCam() { sph.ph = Math.min(1.5, Math.max(.15, sph.ph)); sph.r = Mat
   camera.position.set(target.x + sph.r * Math.sin(sph.ph) * Math.sin(sph.th), target.y + sph.r * Math.cos(sph.ph), target.z + sph.r * Math.sin(sph.ph) * Math.cos(sph.th));
   camera.lookAt(target); camera.updateMatrixWorld(); dirty = true; }
 const VIEWS = {
-  celek:    { t: [2.0, .7, 2.0], r: 10.5, th: -0.62, ph: 0.88, fov: 38, cut: true },
-  zvenku:   { t: [2.7, 1.2, 1.1], r: 7.6, th: 2.30, ph: 1.08, fov: 40, cut: false, ceil: true, cloud: false },
-  interier: { t: [1.2, 1.0, 0.4], r: 2.95, th: 0.997, ph: 1.38, fov: 70, cut: false, cloud: false },
-  vstup:    { t: [1.45, .75, 5.0], r: 3.9, th: 0.62, ph: 1.12, fov: 60, cut: false, cloud: false },
+  dum:      { t: [-1.6, 2.6, 3.6], r: 28, th: 2.42, ph: 1.15, fov: 38, cut: false, ceil: true, upper: true },
+  rez:      { t: [-1.2, 4.3, 3.8], r: 21.5, th: 1.48, ph: 1.40, fov: 38, cut: false, ceil: true, upper: true, sec: true },
+  suteren:  { t: [-1.7, 0.3, 3.8], r: 17.5, th: -0.68, ph: 0.80, fov: 38, cut: true, upper: false },
+  celek:    { t: [2.0, .7, 2.0], r: 10.5, th: -0.62, ph: 0.88, fov: 38, cut: true, upper: false },
+  zvenku:   { t: [2.7, 1.2, 1.1], r: 7.6, th: 2.30, ph: 1.08, fov: 40, cut: false, ceil: true, cloud: false, upper: true },
+  interier: { t: [1.2, 1.0, 0.4], r: 2.95, th: 0.997, ph: 1.38, fov: 70, cut: false, cloud: false, upper: false },
+  vstup:    { t: [1.45, .75, 5.0], r: 3.9, th: 0.62, ph: 1.12, fov: 60, cut: false, cloud: false, upper: false },
 };
+const SEC = new THREE.Plane(new THREE.Vector3(-1, 0, 0), X(2000));   // svislý řez domem přes kotelnu (pohled od východu)
+let secOn = false, view = 'dum';
 let cutOn = true;
 function setCut(on) { cutOn = on; dirty = true; Object.values(CUTMAT).forEach(m => { m.clippingPlanes = on ? [CUT] : []; m.needsUpdate = true; });
   document.getElementById('t-cut').setAttribute('aria-pressed', String(on)); }
-function setView(name) { const v = VIEWS[name]; target.set(...v.t); Object.assign(sph, { r: v.r, th: v.th, ph: v.ph }); camera.fov = v.fov; camera.updateProjectionMatrix();
-  ceilingSlab.visible = name === 'interier' || name === 'vstup' || !!v.ceil; cloud.visible = v.cloud !== false; setCut(v.cut); applyCam();
+function setView(name) { const v = VIEWS[name]; view = name; target.set(...v.t); Object.assign(sph, { r: v.r, th: v.th, ph: v.ph }); camera.fov = v.fov; camera.updateProjectionMatrix();
+  ceilingSlab.visible = name === 'interier' || name === 'vstup' || !!v.ceil; cloud.visible = v.cloud !== false; setCut(v.cut);
+  G.upper.visible = v.upper !== false; secOn = !!v.sec; renderer.clippingPlanes = secOn ? [SEC] : []; sun.castShadow = !secOn;
+  buildLabels(); applyCam();
   document.querySelectorAll('.views button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.p === name))); }
 let drag = null;
 canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, b: e.button, pan: e.button === 2 || e.shiftKey }; canvas.setPointerCapture(e.pointerId); });
@@ -535,15 +716,15 @@ const PANEL = {
   stav: { h: 'Stávající stav', lead: 'Kotelna v 1.PP dnes: kamenné zdivo bez omítek, okna těsně nad terénem, staré prkenné dveře, výklenek se sopouchem po kotli.',
     leg: [['#b9ab92', 'lomové kamenné zdivo 520 mm (sever, východ, západ)'], ['#c98a5e', 'cihelná stěna 370 mm k dílně, dveře D1 800 × 1700 mm'], ['#3d4247', 'stropní nosníky I N1, N2 – rozpětí 4,23 m bez podpory'], ['#bfd6dc', 'okna O1–O3 – jednoduché sklo, místy prasklé'], ['#7b5d3f', 'rostlý terén −0,980, podlaha 1,18 m pod terénem']],
     nums: [['Podlahová plocha', '17,6 m²'], ['Světlá výška', '1,94 m'], ['Užitný objem V', '33,4 m³'], ['Celkové skóre S_C', '5,80 (KIÚ-I)']],
-    note: 'Rozměry podle projektové dokumentace a zaměření (10/2026). Model je zjednodušený, stěny omítky a drobné instalace nezobrazuje.' },
+    note: 'Rozměry podle projektové dokumentace a zaměření (10/2026). Dům je vymodelován podle půdorysů 1.PP a 1.NP, řezu, pohledů a fotografií; příčky v 1.NP a v podkroví a barva krytiny jsou orientační.' },
   konv: { h: 'Návrh – konvenční zbraně', lead: 'Ochrana proti střelbě, střepinám a tlakové vlně v okolí domu, pobyt 4 osob až 7 dní.',
     leg: [['#cbb894', 'pytle s pískem – vnější násyp 600 mm a výplň okenních nik'], ['#c99e5f', 'deska OSB 22 mm na rámu z latí uvnitř oken'], ['#d4a464', 'nové sloupky S1, S2 140 × 140 s roznášecí fošnou a zavětrováním'], ['#c94f3a', 'nouzový průraz 600 × 800 mm do chodby'], ['#6e7c6f', 'plné dveře D1 se závorou, žlutočerné nadpraží'], ['#14a3b4', 'VZT-P s ventilátorem VE oknem O3, VZT-O sopouchem'], ['#3f6aa8', 'palandy L1–L4 mimo okna, regál R1 před oknem O1, R2, stůl, chemické WC']],
     nums: [['Kapacita (dlouhodobě)', '4 osoby'], ['Bez větrání', '8,4 h'], ['Osvětlenost', '≈ 184 lx'], ['Celkové skóre S_C', '6,96 (IÚ-I)']],
-    note: 'Opatření T0–T2 podle Metodiky UO (2025); statické prvky je nutné ověřit výpočtem.' },
+    note: 'Opatření T0–T2 podle Metodiky UO (2025); statické prvky je nutné ověřit výpočtem. Pohledy Dům, Řez a Suterén ukazují úkryt v celém domě.' },
   nh3: { h: 'Návrh – únik amoniaku', lead: 'Únik plynné fáze amoniaku z cisterny na hlavní silnici 0,5–1 km od domu. Ochranný prostor typu II podle Pivovarníka (2006) – suterén proti škodlivině lehčí než vzduch, 3–4 osoby, krátkodobý pobyt.',
     leg: [['#cfe9ff', 'PE fólie přes okenní otvory a dveře, obvod přelepený páskou'], ['#5a8fb8', 'mokrá textilie u prahu dveří D1'], ['#2b2f33', 'ucpaný sopouch, vyplněné otvory ve výklenku, utěsněné prostupy'], ['#9fb7c4', 'hygienická smyčka v dílně – PE závěs, vana na obuv, pytel na oděvy'], ['#323a2e', 'ochranné masky s filtrem typu K (ABEK2-P3)'], ['#dff2c8', 'oblak NH₃ – plyn je lehčí než vzduch a stoupá']],
     nums: [['Bez větrání, 4 osoby', '8,4 h'], ['Bez větrání, 3 osoby', '11,1 h'], ['Výměna vzduchu', '1,5 → 0,3 h⁻¹'], ['Vrchol uvnitř (500 ppm, 1 h)', '388 → 130 ppm']],
-    note: 'Únik kapalné fáze vytváří u zdroje studenou mlhu těžší než vzduch – pak a při pokynu k ukrytí ve vyšších patrech se kotelna nepoužívá a platí pokyn HZS.' },
+    note: 'Únik kapalné fáze vytváří u zdroje studenou mlhu těžší než vzduch – pak a při pokynu k ukrytí ve vyšších patrech se kotelna nepoužívá a platí pokyn HZS. Pohledy Dům, Řez a Suterén ukazují úkryt v celém domě.' },
 };
 let variant = 'konv';
 const ONLY = ['stav', 'konv'], DEF = 'konv';   // varianty zobrazené na této stránce
@@ -556,13 +737,14 @@ function setVariant(v) { variant = v; G.stav.visible = v === 'stav'; G.konv.visi
     <dl class="nums">${p.nums.map(([a, b]) => `<dt>${a}</dt><dd>${b.replace('S_C', 'S<sub>C</sub>')}</dd>`).join('')}</dl><p class="note">${p.note}</p>`;
   buildLabels(); dirty = true; }
 const labelsEl = document.getElementById('labels'); let lblOn = true; let lblNodes = [];
-function buildLabels() { labelsEl.innerHTML = ''; lblNodes = labels.filter(l => l.vars.includes(variant)).map(l => { const d = document.createElement('div'); d.className = 'lbl ' + l.cls; d.textContent = l.text; labelsEl.appendChild(d); return [l, d]; }); }
+function buildLabels() { labelsEl.innerHTML = ''; lblNodes = labels.filter(l => l.vars.includes(variant) && l.views.includes(view)).map(l => { const d = document.createElement('div'); d.className = 'lbl ' + l.cls; d.textContent = l.text; labelsEl.appendChild(d); return [l, d]; }); }
 const ray = new THREE.Raycaster(); const CUTSET = new Set(Object.values(CUTMAT));
 function shown(o) { while (o) { if (!o.visible) return false; o = o.parent; } return true; }
 function occlusion() { const occ = []; scene.traverse(o => { if (o.isMesh && !o.material.transparent && shown(o)) occ.push(o); });
   const cp = camera.position; const dir = new THREE.Vector3();
   lblNodes.forEach(([l, d]) => { dir.copy(l.p).sub(cp); const dist = dir.length(); dir.normalize(); ray.set(cp, dir); ray.far = Math.max(0, dist - .15);
-    const hits = ray.intersectObjects(occ, false).filter(hh => !(cutOn && CUTSET.has(hh.object.material) && hh.point.y > CUT.constant));
+    const hits = ray.intersectObjects(occ, false).filter(hh => !(cutOn && CUTSET.has(hh.object.material) && hh.point.y > CUT.constant)
+      && !(secOn && hh.point.x > SEC.constant));
     l.hidden = hits.length > 0; }); dirty = false; }
 function placeLabels() { if (!lblOn) { labelsEl.hidden = true; return; } labelsEl.hidden = false; if (dirty) occlusion();
   const w = canvas.clientWidth, h = canvas.clientHeight; const v = new THREE.Vector3();
@@ -594,7 +776,7 @@ function frame(now) { resize(); if (!reduce && G.nh3.visible) { const t = (now -
   renderer.render(scene, camera); placeLabels(); requestAnimationFrame(frame); }
 themeBg(); window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', themeBg);
 new MutationObserver(themeBg).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-let start = 'celek'; try { const h = (location.hash || '').slice(1); if (VIEWS[h]) start = h; } catch (e) { /* bez hash */ }
+let start = 'dum'; try { const h = (location.hash || '').slice(1); if (VIEWS[h]) start = h; } catch (e) { /* bez hash */ }
 setVariant(DEF); setView(start); requestAnimationFrame(frame);
 // rozhraní pro export obrázků a modelu (používá se jen při přípravě protokolů)
 window.__ukryt = { scene, renderer, camera, G, setVariant, setView, setCut, applyCam, sph, target, labels: on => { lblOn = on; },
